@@ -1,0 +1,304 @@
+:root {
+  --brown: #8d5146;
+  --brown-dark: #613b34;
+  --pink: #d92f6f;
+  --rose: #dda1aa;
+  --peach: #f7c9bd;
+  --orange: #ff8b45;
+  --green: #4d862a;
+  --panel: #f4f4f4;
+  --cream: #fff4ee;
+  --gray: #d4d4d4;
+}
+
+.app-canvas {
+  min-height: 100vh;
+  padding: 1.25rem 1rem;
+  background:
+    radial-gradient(circle at 48% 118%, #ffd733 0 22%, transparent 52%),
+    linear-gradient(125deg, #cf92a0 0%, #efb6b4 42%, #ffb07f 100%);
+}
+
+.app-shell {
+  width: min(100%, 27rem);
+  min-height: calc(100vh - 2.5rem);
+  margin: 0 auto;
+  color: #111;
+}
+
+.topbar {
+  height: 5rem;
+  padding: 0 .9rem;
+  display: grid;
+  grid-template-columns: 2.7rem 1fr 3.2rem;
+  align-items: center;
+}
+
+.plain-icon,
+.notification-button {
+  border: 0;
+  display: grid;
+  place-items: center;
+  color: #111;
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu-button svg { width: 2rem; height: 2rem; stroke-width: 3.1; }
+
+.brand {
+  justify-self: start;
+  color: #111;
+  font-size: 3.35rem;
+  font-weight: 400;
+  letter-spacing: -.09em;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.brand span { font-family: Georgia, serif; font-size: 4rem; font-weight: 400; }
+
+.notification-button {
+  justify-self: end;
+  width: 3.2rem;
+  height: 3.2rem;
+  position: relative;
+  border-radius: 50%;
+  background: white;
+}
+
+.notification-button svg { width: 1.75rem; height: 1.75rem; stroke-width: 1.8; }
+.notification-button > span { position: absolute; width: .68rem; height: .68rem; top: 1.12rem; right: .62rem; border-radius: 50%; background: var(--pink); }
+
+.mode-switch {
+  width: calc(100% - 4rem);
+  height: 2.2rem;
+  margin: 0 auto .55rem;
+  border-radius: 999px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  background: var(--gray);
+}
+
+.mode-switch button {
+  border: 0;
+  color: #111;
+  background: transparent;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mode-switch button.selected { background: #f7f7f7; }
+
+.content-panel {
+  min-height: 45rem;
+  padding: 1.05rem .95rem 1rem;
+  overflow: hidden;
+  border-radius: 1.35rem;
+  background: var(--panel);
+}
+
+h1 {
+  margin: 0 0 .9rem .25rem;
+  font-size: clamp(1.45rem, 7vw, 1.9rem);
+  line-height: 1.1;
+  letter-spacing: -.045em;
+}
+
+.timer-scene {
+  height: 15.5rem;
+  border: .38rem solid var(--brown);
+  border-radius: 1.25rem;
+  display: grid;
+  grid-template-columns: 59% 41%;
+  position: relative;
+  background: var(--peach);
+}
+
+.timer-character { min-width: 0; height: 100%; position: relative; }
+.character-body {
+  width: 10.6rem;
+  height: 11.1rem;
+  padding-top: 4.1rem;
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 46%;
+  border-radius: 48% 48% 45% 45% / 48% 48% 42% 42%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: var(--cream);
+}
+
+.ear {
+  width: 3.8rem;
+  height: 3.8rem;
+  position: absolute;
+  z-index: 1;
+  top: 2.35rem;
+  border-radius: 50%;
+  background: var(--rose);
+}
+
+.ear-left { left: 1.55rem; }
+.ear-right { right: 1.55rem; }
+
+.arm {
+  width: 2.2rem;
+  height: 5rem;
+  position: absolute;
+  z-index: 2;
+  top: 7.25rem;
+  border-radius: 50%;
+  background: var(--brown);
+}
+
+.arm-left { left: .9rem; transform: rotate(9deg); }
+.arm-right { right: .9rem; transform: rotate(-9deg); }
+
+.face {
+  width: 5.8rem;
+  height: 2.1rem;
+  margin: 0 auto .55rem;
+  position: relative;
+}
+
+.eye { width: .78rem; height: .78rem; position: absolute; top: 0; border-radius: 50%; background: var(--brown); }
+.eye-left { left: .3rem; }
+.eye-right { right: .3rem; }
+.smile { width: 1.8rem; height: 1rem; position: absolute; left: 50%; top: .15rem; border: .35rem solid var(--brown); border-top: 0; border-left-color: transparent; border-right-color: transparent; border-radius: 0 0 50% 50%; transform: translateX(-50%); }
+
+.character-time {
+  display: block;
+  color: #000;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.character-foot {
+  width: 4rem;
+  height: 4rem;
+  border: .25rem solid rgba(217, 47, 111, .12);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: absolute;
+  z-index: 5;
+  bottom: .72rem;
+  color: var(--brown);
+  background: #edb9c3;
+  box-shadow: 0 .15rem 0 rgba(141, 81, 70, .18);
+  cursor: pointer;
+}
+
+.character-foot svg { width: 1.75rem; height: 1.75rem; stroke-width: 1; }
+.stop-foot { left: 2rem; }
+.play-foot { right: 1.15rem; }
+.character-foot:disabled { cursor: default; opacity: .72; }
+.timer-character.running .stop-foot { color: white; background: var(--pink); border-color: rgba(255,255,255,.3); }
+
+.timer-options { min-width: 0; padding: 1.6rem .65rem .5rem 0; position: relative; z-index: 6; }
+.speech-bubble {
+  min-height: 5.5rem;
+  padding: .8rem .35rem;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border-radius: 49% 51% 45% 55% / 55% 46% 54% 45%;
+  color: var(--pink);
+  background: white;
+  filter: drop-shadow(.16rem .16rem 0 var(--brown));
+  text-align: center;
+}
+
+.speech-bubble::before { content: ''; width: 1.9rem; height: 1.5rem; position: absolute; left: -.75rem; bottom: .7rem; border-radius: 60% 0 60% 40%; background: white; transform: rotate(18deg); }
+.speech-bubble span { max-width: 6.2rem; overflow: hidden; font-size: 1.05rem; font-weight: 700; text-overflow: ellipsis; }
+
+.goal-picker { margin: 1.25rem 0 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, 2.6rem); gap: .55rem; justify-content: center; }
+.goal-picker legend { margin-bottom: .38rem; padding: 0; font-size: .73rem; font-weight: 700; white-space: nowrap; }
+.goal-picker button { width: 2.6rem; height: 2.6rem; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; color: white; background: var(--orange); font-size: .9rem; cursor: pointer; }
+.goal-picker button.selected { box-shadow: 0 0 0 .18rem rgba(255,255,255,.9), 0 0 0 .34rem var(--pink); }
+.goal-picker button.no-goal { background: var(--brown); }
+.goal-picker button svg { width: .9rem; }
+
+.label-section { margin-top: 1.05rem; }
+.category-tabs { height: 2.25rem; padding: 0 .25rem; display: grid; grid-template-columns: repeat(4, 1fr); align-items: end; gap: 0; }
+.category-tabs button { height: 2.25rem; margin: 0 -.08rem; padding: .2rem .3rem .45rem; border: 0; border-radius: 1.25rem 1.25rem 0 0; color: white; background: var(--tab-color); font-size: .88rem; font-weight: 700; cursor: pointer; }
+.category-tabs button[aria-selected='true'] { height: 2.5rem; padding-top: .45rem; position: relative; z-index: 2; }
+
+.label-picker {
+  min-height: 12.1rem;
+  padding: 1.15rem 2.45rem 1rem 1.25rem;
+  border: .38rem solid var(--brown);
+  border-radius: 1.1rem;
+  position: relative;
+  background: #fee9e0;
+}
+
+.label-list { display: grid; gap: .4rem; }
+.label-list button { min-height: 2.15rem; padding: .15rem 0; border: 0; display: flex; align-items: center; gap: .78rem; color: #111; background: transparent; font-size: 1rem; text-align: left; cursor: pointer; }
+.label-list button.selected { font-weight: 700; }
+.label-dot { width: 1.55rem; height: 1.55rem; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.label-dot svg { width: 1rem; color: #666; }
+.label-list button.selected .label-dot { box-shadow: 0 0 0 .2rem rgba(141,81,70,.18); }
+.fake-scrollbar { width: .85rem; height: 8.8rem; position: absolute; top: 1.25rem; right: .8rem; border-radius: 999px; background: #d3d5d5; }
+.fake-scrollbar i { width: 100%; height: 4.35rem; display: block; border-radius: inherit; background: var(--rose); }
+
+.quick-labels { padding: 1rem .25rem 0; }
+.quick-labels h2 { margin: 0 0 .75rem; font-size: 1.35rem; letter-spacing: -.04em; }
+.quick-card { min-height: 5.8rem; margin-bottom: .65rem; padding: .75rem .8rem; border-radius: 2rem; display: grid; grid-template-columns: 1.25fr 1.2fr 2.5rem; align-items: center; gap: .4rem; background: #fde5dc; }
+.quick-main p { margin: 0 0 .25rem; font-size: .68rem; }
+.quick-main p strong { font-size: 1rem; }
+.quick-main p span { color: var(--brown); font-weight: 700; }
+.quick-main > b { font-size: 1.35rem; line-height: 1; }
+.quick-meta { display: flex; flex-direction: column; gap: .55rem; }
+.quick-meta strong { font-size: .76rem; }
+.quick-meta span { font-size: .66rem; font-weight: 700; }
+.quick-actions { display: grid; gap: .55rem; }
+.quick-actions span, .empty-quick button { width: 2rem; height: 2rem; border: 0; border-radius: 50%; display: grid; place-items: center; color: var(--brown); background: var(--orange); }
+.quick-actions svg, .empty-quick svg { width: 1.2rem; }
+.empty-quick { grid-template-columns: 1fr auto; }
+.empty-quick div { display: flex; flex-direction: column; }
+.empty-quick strong { color: var(--pink); font-size: 1rem; }
+.empty-quick span { color: var(--brown); font-size: .75rem; }
+.empty-quick button { cursor: pointer; }
+
+.bottom-nav {
+  height: 4.3rem;
+  margin: .9rem .85rem 0;
+  padding: .45rem 1.15rem;
+  border-radius: 1.15rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+  background: var(--gray);
+}
+
+.bottom-nav a,
+.bottom-nav > span { min-height: 3rem; display: grid; place-items: center; color: #262223; text-decoration: none; }
+.bottom-nav svg { width: 1.9rem; height: 1.9rem; stroke-width: 2; }
+.bottom-nav a[aria-current='page'] { color: var(--brown); }
+.bottom-nav a[aria-current='page'] svg { width: 2.4rem; height: 2.4rem; }
+
+.sr-only { width: 1px; height: 1px; padding: 0; margin: -1px; position: absolute; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+@media (max-width: 430px) {
+  .app-canvas { padding: 0; }
+  .app-shell { width: 100%; min-height: 100vh; }
+  .content-panel { border-radius: 1.35rem 1.35rem 0 0; }
+}
+
+@media (max-width: 365px) {
+  .content-panel { padding-inline: .65rem; }
+  .character-body { width: 9.7rem; }
+  .character-time { font-size: 1.75rem; }
+  .stop-foot { left: 1.55rem; }
+  .play-foot { right: .8rem; }
+  .goal-picker { grid-template-columns: repeat(2, 2.3rem); }
+  .goal-picker button { width: 2.3rem; height: 2.3rem; }
+  .category-tabs button { font-size: .75rem; }
+}
