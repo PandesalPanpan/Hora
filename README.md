@@ -64,6 +64,10 @@ npm run build
 - Timestamp-based elapsed time (UI ticks are not authoritative)
 - Active timer recovery after closing or reloading the page
 - Finish-to-log workflow and today's tracked total
+- Interactive day/week planner with dynamic date navigation
+- Planned-block creation, persistence, and 15-minute resize handles
+- Planned, completed, overlapping, and live Timeflow calendar states
+- Planned-versus-actual session inspection
 - Unit and component coverage for duration and recovery
 - Capacitor Android shell and repeatable build/sync scripts
 

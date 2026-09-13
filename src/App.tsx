@@ -11,9 +11,10 @@ import {
   Plus,
   Square,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTimer } from './features/timer/useTimer'
 import type { Activity } from './features/timer/types'
+import { Planner } from './features/planner/Planner'
 import { formatCompactDuration, formatDuration, isSameLocalDay, sessionSeconds } from './lib/time'
 import './App.css'
 
@@ -59,10 +60,16 @@ function longDuration(totalSeconds: number) {
 
 export default function App() {
   const { active, completed, elapsed, start, finish } = useTimer()
+  const [page, setPage] = useState<'timeflow' | 'calendar'>('timeflow')
   const [mode, setMode] = useState<'flowtime' | 'pomodoro'>('flowtime')
   const [group, setGroup] = useState<ActivityGroup>('Focus')
   const [selected, setSelected] = useState<Activity>(groups.Focus[0])
   const [goal, setGoal] = useState<number | null>(25)
+
+  useEffect(() => {
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [page])
   const todaySessions = useMemo(
     () => completed.filter((session) => isSameLocalDay(session.startedAt)),
     [completed],
@@ -86,12 +93,13 @@ export default function App() {
           </button>
         </header>
 
-        <div className="mode-switch" aria-label="Timer mode">
+        {page === 'timeflow' && <div className="mode-switch" aria-label="Timer mode">
           <button className={mode === 'flowtime' ? 'selected' : ''} type="button" onClick={() => setMode('flowtime')}>Flowtime</button>
           <button className={mode === 'pomodoro' ? 'selected' : ''} type="button" onClick={() => setMode('pomodoro')}>Pomodoro</button>
-        </div>
+        </div>}
 
         <section className="content-panel">
+          {page === 'timeflow' ? <>
           <h1>What are you working on?</h1>
 
           <section className="timer-scene" aria-label="Timer">
@@ -206,10 +214,12 @@ export default function App() {
             )}
           </section>
 
+          </> : <Planner active={active} completed={completed} elapsed={elapsed} onFinish={finish} onStart={start} />}
+
           <nav className="bottom-nav" aria-label="Primary navigation">
-            <a href="#top" aria-current="page" aria-label="Timer"><Clock3 /></a>
+            <button type="button" className={page === 'timeflow' ? 'active' : ''} onClick={() => setPage('timeflow')} aria-current={page === 'timeflow' ? 'page' : undefined} aria-label="Timeflow timer"><Clock3 /></button>
             <span aria-disabled="true" aria-label="Tasks"><CheckSquare /></span>
-            <span aria-disabled="true" aria-label="Calendar"><CalendarDays /></span>
+            <button type="button" className={page === 'calendar' ? 'active' : ''} onClick={() => setPage('calendar')} aria-current={page === 'calendar' ? 'page' : undefined} aria-label="Planner calendar"><CalendarDays /></button>
             <span aria-disabled="true" aria-label="Reports"><BarChart3 /></span>
           </nav>
         </section>

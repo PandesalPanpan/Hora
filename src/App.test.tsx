@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
@@ -7,9 +7,11 @@ describe('first timer vertical slice', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-09-12T06:00:00.000Z'))
     vi.stubGlobal('crypto', { randomUUID: () => 'session-one' })
+    localStorage.clear()
   })
 
   afterEach(() => {
+    cleanup()
     vi.useRealTimers()
     vi.unstubAllGlobals()
   })
@@ -31,5 +33,31 @@ describe('first timer vertical slice', () => {
     expect(screen.getByText('1m')).toBeInTheDocument()
     expect(screen.getByText('Min goal reached')).toBeInTheDocument()
     restored.unmount()
+  })
+
+  it('drills from the week into a day and creates a planned block', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Planner calendar' }))
+
+    fireEvent.click(screen.getByRole('button', { name: /Open Saturday, September 12, 2026/ }))
+    expect(screen.getByRole('heading', { name: 'September 12, 2026' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
+    fireEvent.change(screen.getByLabelText('What are you planning?'), { target: { value: 'Review biology notes' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save as planned' }))
+
+    expect(screen.getByRole('button', { name: 'Review biology notes Focus' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Review biology notes Focus' }))
+    expect(screen.getByText('Not tracked yet')).toBeInTheDocument()
+  })
+
+  it('can start an immediate Timeflow from the planner', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Planner calendar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
+    fireEvent.change(screen.getByLabelText('What are you planning?'), { target: { value: 'Essay outline' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Start via Timeflow' }))
+
+    expect(screen.getByRole('button', { name: /^Essay outline Timeflow Live/ })).toBeInTheDocument()
   })
 })
