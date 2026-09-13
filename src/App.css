@@ -115,101 +115,101 @@ h1 {
 .timer-scene {
   width: 100%;
   min-width: 0;
-  height: 12.9rem;
+  height: 15.25rem;
   border: .38rem solid var(--brown);
   border-radius: 1.25rem;
   display: grid;
-  grid-template-columns: minmax(0, 59%) minmax(0, 41%);
+  grid-template-columns: minmax(0, 61%) minmax(0, 39%);
   position: relative;
   background: var(--peach);
 }
 
 .timer-character { min-width: 0; height: 100%; position: relative; }
 .character-body {
-  width: 8.75rem;
-  height: auto;
-  aspect-ratio: .955;
-  padding-top: 3.45rem;
+  width: clamp(10.25rem, 48vw, 12.75rem);
+  aspect-ratio: 1;
+  padding-top: clamp(3rem, 13vw, 3.45rem);
   position: absolute;
   z-index: 3;
   left: 50%;
-  top: 46%;
-  border-radius: 48% 48% 45% 45% / 48% 48% 42% 42%;
-  transform: translate(-50%, -50%);
+  top: .9rem;
+  border-radius: 50%;
+  transform: translateX(-50%);
   text-align: center;
   background: var(--cream);
 }
 
 .ear {
-  width: 3.15rem;
-  height: 3.15rem;
+  width: 3rem;
+  height: 3rem;
   position: absolute;
   z-index: 1;
-  top: 1.85rem;
+  top: 1.3rem;
   border-radius: 50%;
   background: var(--rose);
 }
 
-.ear-left { left: 1.25rem; }
-.ear-right { right: 1.25rem; }
+.ear-left { left: clamp(.2rem, 3vw, .85rem); }
+.ear-right { right: clamp(.2rem, 3vw, .85rem); }
 
 .arm {
-  width: 1.85rem;
-  height: 4.15rem;
+  width: 1.45rem;
+  height: 3.3rem;
   position: absolute;
   z-index: 2;
-  top: 5.9rem;
+  top: 7.75rem;
   border-radius: 50%;
   background: var(--brown);
 }
 
-.arm-left { left: .75rem; transform: rotate(9deg); }
-.arm-right { right: .75rem; transform: rotate(-9deg); }
+.arm-left { left: clamp(-.15rem, .8vw, .25rem); transform: rotate(5deg); }
+.arm-right { right: clamp(-.15rem, .8vw, .25rem); transform: rotate(-5deg); }
 
 .face {
-  width: 4.8rem;
-  height: 1.75rem;
-  margin: 0 auto .42rem;
+  width: clamp(5rem, 20vw, 5.75rem);
+  height: 1.85rem;
+  margin: 0 auto .65rem;
   position: relative;
 }
 
-.eye { width: .66rem; height: .66rem; position: absolute; top: 0; border-radius: 50%; background: var(--brown); }
+.eye { width: .72rem; height: .72rem; position: absolute; top: 0; border-radius: 50%; background: var(--brown); }
 .eye-left { left: .3rem; }
 .eye-right { right: .3rem; }
-.smile { width: 1.55rem; height: .8rem; position: absolute; left: 50%; top: .12rem; border: .3rem solid var(--brown); border-top: 0; border-left-color: transparent; border-right-color: transparent; border-radius: 0 0 50% 50%; transform: translateX(-50%); }
+.smile { width: 1.65rem; height: .82rem; position: absolute; left: 50%; top: .15rem; border: .28rem solid var(--brown); border-top: 0; border-radius: 0 0 1rem 1rem; transform: translateX(-50%); }
 
 .character-time {
   display: block;
   color: #000;
-  font-size: 1.65rem;
+  font-size: clamp(1.75rem, 8vw, 2.2rem);
+  font-weight: 800;
   line-height: 1;
-  letter-spacing: -.045em;
+  letter-spacing: -.06em;
   font-variant-numeric: tabular-nums;
 }
 
 .character-foot {
-  width: 3.35rem;
-  height: 3.35rem;
+  width: clamp(3.55rem, 15vw, 4rem);
+  height: clamp(3.55rem, 15vw, 4rem);
   border: .25rem solid rgba(217, 47, 111, .12);
   border-radius: 50%;
   display: grid;
   place-items: center;
   position: absolute;
   z-index: 5;
-  bottom: .55rem;
+  bottom: .65rem;
   color: var(--brown);
   background: #edb9c3;
   box-shadow: 0 .15rem 0 rgba(141, 81, 70, .18);
   cursor: pointer;
 }
 
-.character-foot svg { width: 1.45rem; height: 1.45rem; stroke-width: 1; }
-.stop-foot { left: 1.65rem; }
-.play-foot { right: .9rem; }
+.character-foot svg { width: 1.75rem; height: 1.75rem; stroke-width: 1; }
+.stop-foot { left: clamp(.65rem, 5vw, 1.45rem); }
+.play-foot { right: clamp(.65rem, 5vw, 1.45rem); }
 .character-foot:disabled { cursor: default; opacity: .72; }
 .timer-character.running .stop-foot { color: white; background: var(--pink); border-color: rgba(255,255,255,.3); }
 
-.timer-options { width: 100%; min-width: 0; padding: 1.15rem .55rem .35rem 0; position: relative; z-index: 6; }
+.timer-options { width: 100%; min-width: 0; padding: 1.15rem .55rem .7rem 0; position: relative; z-index: 6; }
 .speech-bubble {
   width: 100%;
   min-width: 0;
@@ -229,9 +229,9 @@ h1 {
 .speech-bubble::after { content: ''; width: 1.45rem; height: 1.45rem; position: absolute; left: -.42rem; top: 1.15rem; border-radius: 50%; background: white; }
 .speech-bubble span { max-width: 100%; overflow: hidden; font-size: .95rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 
-.goal-picker { width: 100%; min-width: 0; margin: .82rem 0 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 2.25rem)); gap: .42rem; justify-content: center; }
-.goal-picker legend { width: 100%; margin-bottom: .3rem; padding: 0; font-size: .66rem; font-weight: 700; text-align: center; }
-.goal-picker button { width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; color: white; background: var(--orange); font-size: .78rem; cursor: pointer; }
+.goal-picker { width: 100%; min-width: 0; margin: .9rem 0 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 2.5rem)); gap: .48rem; justify-content: center; }
+.goal-picker legend { width: 100%; margin-bottom: .38rem; padding: 0; font-size: .68rem; font-weight: 700; line-height: 1.15; text-align: center; }
+.goal-picker button { width: 2.5rem; height: 2.5rem; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; color: white; background: var(--orange); font-size: .82rem; cursor: pointer; }
 .goal-picker button.selected { box-shadow: 0 0 0 .18rem rgba(255,255,255,.9), 0 0 0 .34rem var(--pink); }
 .goal-picker button.no-goal { background: var(--brown); }
 .goal-picker button svg { width: .9rem; }
@@ -305,27 +305,27 @@ h1 {
 
 @media (max-width: 365px) {
   .content-panel { padding-inline: .65rem; }
-  .timer-scene { height: 12.1rem; grid-template-columns: minmax(0, 58%) minmax(0, 42%); }
-  .character-body { width: clamp(7.15rem, 42.5vw, 8.4rem); padding-top: 2.95rem; }
-  .character-time { font-size: clamp(1.3rem, 7.6vw, 1.6rem); }
-  .ear { width: 2.7rem; height: 2.7rem; top: 1.8rem; }
-  .ear-left { left: .85rem; }
-  .ear-right { right: .85rem; }
-  .arm { width: 1.55rem; height: 3.6rem; top: 5.3rem; }
-  .arm-left { left: .48rem; }
-  .arm-right { right: .48rem; }
-  .face { width: 4rem; height: 1.45rem; margin-bottom: .3rem; }
-  .eye { width: .55rem; height: .55rem; }
-  .smile { width: 1.25rem; height: .68rem; border-width: .25rem; border-top: 0; }
-  .character-foot { width: 3rem; height: 3rem; }
-  .stop-foot { left: 1.05rem; }
-  .play-foot { right: .42rem; }
-  .timer-options { padding: .95rem .35rem .25rem 0; }
+  .timer-scene { height: 14.5rem; grid-template-columns: minmax(0, 62%) minmax(0, 38%); }
+  .character-body { width: clamp(9.7rem, 51vw, 10.25rem); padding-top: 3rem; }
+  .character-time { font-size: clamp(1.65rem, 8.8vw, 1.85rem); }
+  .ear { width: 3rem; height: 3rem; top: 1.3rem; }
+  .ear-left { left: .1rem; }
+  .ear-right { right: .1rem; }
+  .arm { width: 1.35rem; height: 3.2rem; top: 7.25rem; }
+  .arm-left { left: -.15rem; }
+  .arm-right { right: -.15rem; }
+  .face { width: 5rem; height: 1.75rem; margin-bottom: .55rem; }
+  .eye { width: .66rem; height: .66rem; }
+  .smile { width: 1.5rem; height: .75rem; border-width: .25rem; border-top: 0; }
+  .character-foot { width: 3.55rem; height: 3.55rem; }
+  .stop-foot { left: .65rem; }
+  .play-foot { right: .65rem; }
+  .timer-options { padding: .9rem .3rem .55rem 0; }
   .speech-bubble { min-height: 3.9rem; }
   .speech-bubble span { font-size: .82rem; }
-  .goal-picker { margin-top: .65rem; grid-template-columns: repeat(2, minmax(0, 2rem)); gap: .34rem; }
-  .goal-picker button { width: 2rem; height: 2rem; font-size: .68rem; }
-  .goal-picker legend { font-size: .58rem; }
+  .goal-picker { margin-top: .7rem; grid-template-columns: repeat(2, minmax(0, 2.1rem)); gap: .38rem; }
+  .goal-picker button { width: 2.1rem; height: 2.1rem; font-size: .7rem; }
+  .goal-picker legend { margin-bottom: .28rem; font-size: .58rem; }
   .quick-main > b { font-size: 1.15rem; }
   .quick-meta strong { font-size: .64rem; }
 }
