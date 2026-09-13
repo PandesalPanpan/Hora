@@ -14,6 +14,12 @@ Read `docs/ADAPTIVE_PLANNER_MASTER_PLAN.md` before changing product behavior. Us
 - Do not place the character in every card or use it as decoration. Calendar density, task scanning, and reports take priority where data is the main content.
 - Keep interface copy direct, conversational, and specific. Use sentence case. Buttons must describe the result of the action.
 
+## UX reference
+
+Use Steve Krug's *Don't Make Me Think, Revisited* as the repository's primary usability reference. Apply its principles by making screens and controls self-evident, keeping navigation familiar and consistent, making the primary action obvious, removing unnecessary choices and copy, and testing realistic tasks on actual phone layouts.
+
+The book guides interaction clarity; it is not a replacement visual system. When applying it, preserve Iza's product direction and client-designed visual language. If a recommendation appears to conflict with those constraints, simplify the interaction without changing Iza into a generic dashboard.
+
 ## Mobile first implementation
 
 - Design and test from a 320px minimum width upward. The primary target is an Android phone wrapped with Capacitor.
@@ -64,4 +70,3 @@ Read `docs/ADAPTIVE_PLANNER_MASTER_PLAN.md` before changing product behavior. Us
 - Visually inspect relevant phone layouts and at least one wider breakpoint after UI changes.
 - Test keyboard focus and reduced-motion behavior for new interactive components.
 - Do not mark work complete when required checks are failing. Report any device-only verification that remains pending.
-
