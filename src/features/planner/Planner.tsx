@@ -107,7 +107,7 @@ function combineDateTime(date: string, time: string) {
 }
 
 export function Planner({ active, completed, elapsed, onFinish, onStart }: PlannerProps) {
-  const [view, setView] = useState<'day' | 'week'>('week')
+  const [view, setView] = useState<'day' | 'week'>(() => window.matchMedia?.('(max-width: 600px)').matches ? 'day' : 'week')
   const [selectedDate, setSelectedDate] = useState(() => new Date())
   const [planned, setPlanned] = useState<PlannedBlock[]>(loadBlocks)
   const [draft, setDraft] = useState<DraftBlock | null>(null)
@@ -294,69 +294,70 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
       </div>
 
       <div className={`calendar-frame ${view}-calendar`}>
-        <div className="date-strip">
-          <span aria-hidden="true" />
-          {days.map((day) => {
-            const today = sameDay(day, now)
-            const selected = sameDay(day, selectedDate)
-            return (
-              <button
-                key={dateKey(day)}
-                className={`${today ? 'today' : ''} ${selected ? 'active' : ''}`}
-                type="button"
-                onClick={() => openDay(day)}
-                aria-label={`Open ${day.toLocaleDateString(undefined, { dateStyle: 'full' })}`}
-              >
-                <span>{day.toLocaleDateString(undefined, { weekday: view === 'week' ? 'short' : 'long' })}</span>
-                <strong>{day.getDate()}</strong>
-              </button>
-            )
-          })}
-        </div>
-
         <div className="calendar-scroll" ref={scrollRef}>
-          <div className="time-rail" aria-hidden="true">
-            {hours.map((hour) => <span key={hour} style={{ top: `${hour * HOUR_HEIGHT}px` }}>{displayHour(hour)}</span>)}
-          </div>
-          <div className="day-columns" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(${view === 'week' ? '6.5rem' : '15rem'}, 1fr))` }}>
+          <div className="date-strip">
+            <span aria-hidden="true" />
             {days.map((day) => {
-              const dayEvents = events.filter((event) => sameDay(event.start, day))
+              const today = sameDay(day, now)
+              const selected = sameDay(day, selectedDate)
               return (
-                <div
-                  className="day-column"
+                <button
                   key={dateKey(day)}
-                  onClick={(event) => {
-                    if (event.target !== event.currentTarget) return
-                    const bounds = event.currentTarget.getBoundingClientRect()
-                    const clickedHour = Math.min(23, Math.max(0, Math.floor((event.clientY - bounds.top) / HOUR_HEIGHT)))
-                    setSelectedDate(day)
-                    setDraft(draftFor(day, clickedHour))
-                  }}
+                  className={`${today ? 'today' : ''} ${selected ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => openDay(day)}
+                  aria-label={`Open ${day.toLocaleDateString(undefined, { dateStyle: 'full' })}`}
                 >
-                  {hours.map((hour) => <span className="hour-line" key={hour} style={{ top: `${hour * HOUR_HEIGHT}px` }} />)}
-                  {hours.map((hour) => <span className="half-hour-line" key={hour} style={{ top: `${hour * HOUR_HEIGHT + HOUR_HEIGHT / 2}px` }} />)}
-                  {sameDay(day, now) && (
-                    <span className="current-time-line" style={{ top: `${minutesSinceMidnight(now) / 60 * HOUR_HEIGHT}px` }}>
-                      <i />
-                    </span>
-                  )}
-                  {dayEvents.map((event) => (
-                    <button
-                      className={`calendar-event ${event.kind}`}
-                      key={`${event.kind}-${event.id}`}
-                      style={eventStyle(event, dayEvents)}
-                      type="button"
-                      onClick={() => setInspected(event)}
-                    >
-                      {event.kind === 'planned' && <><i className="resize-handle top" onPointerDown={(pointer) => resizePlanned(pointer, event.id, 'start')} /><i className="resize-handle bottom" onPointerDown={(pointer) => resizePlanned(pointer, event.id, 'end')} /></>}
-                      <span className="event-title">{event.kind !== 'planned' && <TimerReset aria-hidden="true" />}{event.title}</span>
-                      <span className="event-chip">{event.category}</span>
-                      {event.kind === 'live' && <strong className="live-pill">Live · {pad(Math.floor(elapsed / 3600))}:{pad(Math.floor(elapsed % 3600 / 60))}:{pad(elapsed % 60)}</strong>}
-                    </button>
-                  ))}
-                </div>
+                  <span>{day.toLocaleDateString(undefined, { weekday: view === 'week' ? 'short' : 'long' })}</span>
+                  <strong>{day.getDate()}</strong>
+                </button>
               )
             })}
+          </div>
+          <div className="calendar-body">
+            <div className="time-rail" aria-hidden="true">
+              {hours.map((hour) => <span key={hour} style={{ top: `${hour * HOUR_HEIGHT}px` }}>{displayHour(hour)}</span>)}
+            </div>
+            <div className="day-columns" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(${view === 'week' ? '6.5rem' : '15rem'}, 1fr))` }}>
+              {days.map((day) => {
+                const dayEvents = events.filter((event) => sameDay(event.start, day))
+                return (
+                  <div
+                    className="day-column"
+                    key={dateKey(day)}
+                    onClick={(event) => {
+                      if (event.target !== event.currentTarget) return
+                      const bounds = event.currentTarget.getBoundingClientRect()
+                      const clickedHour = Math.min(23, Math.max(0, Math.floor((event.clientY - bounds.top) / HOUR_HEIGHT)))
+                      setSelectedDate(day)
+                      setDraft(draftFor(day, clickedHour))
+                    }}
+                  >
+                    {hours.map((hour) => <span className="hour-line" key={hour} style={{ top: `${hour * HOUR_HEIGHT}px` }} />)}
+                    {hours.map((hour) => <span className="half-hour-line" key={hour} style={{ top: `${hour * HOUR_HEIGHT + HOUR_HEIGHT / 2}px` }} />)}
+                    {sameDay(day, now) && (
+                      <span className="current-time-line" style={{ top: `${minutesSinceMidnight(now) / 60 * HOUR_HEIGHT}px` }}>
+                        <i />
+                      </span>
+                    )}
+                    {dayEvents.map((event) => (
+                      <button
+                        className={`calendar-event ${event.kind}`}
+                        key={`${event.kind}-${event.id}`}
+                        style={eventStyle(event, dayEvents)}
+                        type="button"
+                        onClick={() => setInspected(event)}
+                      >
+                        {event.kind === 'planned' && <><i className="resize-handle top" onPointerDown={(pointer) => resizePlanned(pointer, event.id, 'start')} /><i className="resize-handle bottom" onPointerDown={(pointer) => resizePlanned(pointer, event.id, 'end')} /></>}
+                        <span className="event-title">{event.kind !== 'planned' && <TimerReset aria-hidden="true" />}{event.title}</span>
+                        <span className="event-chip">{event.category}</span>
+                        {event.kind === 'live' && <strong className="live-pill">Live · {pad(Math.floor(elapsed / 3600))}:{pad(Math.floor(elapsed % 3600 / 60))}:{pad(elapsed % 60)}</strong>}
+                      </button>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>

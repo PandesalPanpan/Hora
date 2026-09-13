@@ -1,4 +1,7 @@
 import { BarChart3, Bell, CalendarDays, CheckSquare, Clock3, Menu, Settings, X } from 'lucide-react'
+import { App as CapacitorApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
+import { Keyboard } from '@capacitor/keyboard'
 import { useCallback, useEffect, useState } from 'react'
 import { Planner } from './features/planner/Planner'
 import { useTimer } from './features/timer/useTimer'
@@ -27,8 +30,51 @@ export default function App() {
     if (!window.location.hash) window.history.replaceState(null, '', '#/today')
     const syncRoute = () => setRoute(routeFromHash())
     window.addEventListener('hashchange', syncRoute)
-    return () => window.removeEventListener('hashchange', syncRoute)
+    window.addEventListener('popstate', syncRoute)
+    return () => {
+      window.removeEventListener('hashchange', syncRoute)
+      window.removeEventListener('popstate', syncRoute)
+    }
   }, [])
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let disposed = false
+    const handles: Array<{ remove: () => Promise<void> }> = []
+
+    void Keyboard.addListener('keyboardWillShow', () => document.body.classList.add('keyboard-open')).then((handle) => {
+      if (disposed) void handle.remove()
+      else handles.push(handle)
+    })
+    void Keyboard.addListener('keyboardWillHide', () => document.body.classList.remove('keyboard-open')).then((handle) => {
+      if (disposed) void handle.remove()
+      else handles.push(handle)
+    })
+
+    return () => {
+      disposed = true
+      document.body.classList.remove('keyboard-open')
+      handles.forEach((handle) => void handle.remove())
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let disposed = false
+    let handle: { remove: () => Promise<void> } | undefined
+    void CapacitorApp.addListener('backButton', () => {
+      if (menuOpen) setMenuOpen(false)
+      else if (route !== '/today') window.history.back()
+      else void CapacitorApp.exitApp()
+    }).then((listener) => {
+      if (disposed) void listener.remove()
+      else handle = listener
+    })
+    return () => {
+      disposed = true
+      if (handle) void handle.remove()
+    }
+  }, [menuOpen, route])
 
   useEffect(() => {
     document.documentElement.scrollTop = 0
