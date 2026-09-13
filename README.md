@@ -1,6 +1,6 @@
 # Iza Time Tracker
 
-A working first vertical slice of the Adaptive Planner: start an activity, keep timing accurately across a page reload, finish it, and see it in today's record.
+A mobile-first working slice of the Adaptive Planner: track and pause activities, plan time, manage lightweight tasks, and review actual time across a URL-backed Capacitor-ready app shell.
 
 ## Run locally
 
@@ -68,6 +68,10 @@ npm run build
 - Planned-block creation, persistence, and 15-minute resize handles
 - Planned, completed, overlapping, and live Timeflow calendar states
 - Planned-versus-actual session inspection
+- Pause and resume with paused time excluded from actual duration
+- URL-backed Timeflow, Tasks, Planner, Reports, and Settings screens
+- Reusable Iza character states for timing, guidance, and empty states
+- Android safe-area and dynamic-viewport layout behavior
 - Unit and component coverage for duration and recovery
 - Capacitor Android shell and repeatable build/sync scripts
 

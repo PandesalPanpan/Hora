@@ -1,4 +1,4 @@
-import type { CompletedSession } from '../features/timer/types'
+import type { ActiveSession, CompletedSession } from '../features/timer/types'
 
 export function elapsedSeconds(startedAt: string, now: Date | number = Date.now()): number {
   const nowMs = typeof now === 'number' ? now : now.getTime()
@@ -6,7 +6,14 @@ export function elapsedSeconds(startedAt: string, now: Date | number = Date.now(
 }
 
 export function sessionSeconds(session: CompletedSession): number {
-  return elapsedSeconds(session.startedAt, new Date(session.finishedAt))
+  return Math.max(0, elapsedSeconds(session.startedAt, new Date(session.finishedAt)) - (session.pausedSeconds ?? 0))
+}
+
+export function activeSessionSeconds(session: ActiveSession, now: Date | number = Date.now()): number {
+  const nowMs = typeof now === 'number' ? now : now.getTime()
+  const pauseStarted = session.pausedAt ? new Date(session.pausedAt).getTime() : null
+  const currentPause = pauseStarted ? Math.max(0, Math.floor((nowMs - pauseStarted) / 1000)) : 0
+  return Math.max(0, elapsedSeconds(session.startedAt, nowMs) - (session.pausedSeconds ?? 0) - currentPause)
 }
 
 export function formatDuration(totalSeconds: number): string {

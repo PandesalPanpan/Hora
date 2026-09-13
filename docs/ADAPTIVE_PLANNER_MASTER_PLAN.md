@@ -21,6 +21,11 @@ Implemented:
 - today's session timeline and tracked-time total,
 - automated tests for time calculation and the start/reload/finish flow.
 - Capacitor Android native project and web-to-native build/sync scripts.
+- URL-backed mobile navigation for Timeflow, Tasks, Planner, Reports, and Settings.
+- reusable Iza character states for active, paused, milestone, and empty-state feedback.
+- pause/resume accounting with persisted paused duration and foreground refresh.
+- interactive day/week planner with planned, completed, overlapping, and live Timeflow states.
+- local-first lightweight task creation and weekly actual-time reporting.
 
 Run it with:
 
@@ -39,7 +44,7 @@ Emulator verification is now complete: a hardware-accelerated Pixel 8 AVD using 
 
 This slice deliberately uses versioned browser `localStorage` rather than Dexie. It proves the local-first workflow with the smallest persistence layer; migration to IndexedDB should happen when session editing, intervals, tasks, or sync introduce richer queries and transactional writes.
 
-Next recommended increment: Sprint 2 pause/resume intervals and optional, non-blocking duration targets.
+Next recommended increment: move richer records to IndexedDB/Dexie, add editable session intervals, and connect native Android goal notifications.
 
 ---
 

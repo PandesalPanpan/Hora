@@ -1,0 +1,53 @@
+.iza-character { min-width: 0; height: 100%; position: relative; }
+.iza-character .character-body { width: clamp(10.25rem, 48vw, 12.75rem); aspect-ratio: 1; padding-top: clamp(3rem, 13vw, 3.45rem); position: absolute; z-index: 3; left: 50%; top: .9rem; border-radius: 50%; transform: translateX(-50%); text-align: center; background: var(--cream); }
+.iza-character .ear { width: 3rem; height: 3rem; position: absolute; z-index: 1; top: 1.3rem; border-radius: 50%; background: var(--rose); }
+.iza-character .ear-left { left: clamp(.2rem, 3vw, .85rem); }
+.iza-character .ear-right { right: clamp(.2rem, 3vw, .85rem); }
+.iza-character .arm { width: 1.45rem; height: 3.3rem; position: absolute; z-index: 2; top: 7.75rem; border-radius: 50%; background: var(--brown); }
+.iza-character .arm-left { left: clamp(-.15rem, .8vw, .25rem); transform: rotate(5deg); }
+.iza-character .arm-right { right: clamp(-.15rem, .8vw, .25rem); transform: rotate(-5deg); }
+.iza-character .face { width: clamp(5rem, 20vw, 5.75rem); height: 1.85rem; margin: 0 auto .65rem; position: relative; }
+.iza-character .eye { width: .72rem; height: .72rem; position: absolute; top: 0; border-radius: 50%; background: var(--brown); }
+.iza-character .eye-left { left: .3rem; }
+.iza-character .eye-right { right: .3rem; }
+.iza-character .smile { width: 1.65rem; height: .82rem; position: absolute; left: 50%; top: .15rem; border: .28rem solid var(--brown); border-top: 0; border-radius: 0 0 1rem 1rem; transform: translateX(-50%); }
+.iza-character .character-time { display: block; color: #000; font-size: clamp(1.75rem, 8vw, 2.2rem); font-weight: 800; line-height: 1; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.iza-character .character-foot { width: clamp(3.55rem, 15vw, 4rem); height: clamp(3.55rem, 15vw, 4rem); border: .25rem solid rgba(217, 47, 111, .12); border-radius: 50%; display: grid; place-items: center; position: absolute; z-index: 5; bottom: .65rem; color: var(--brown); background: #edb9c3; box-shadow: 0 .15rem 0 rgba(141, 81, 70, .18); cursor: pointer; }
+.iza-character .character-foot svg { width: 1.75rem; height: 1.75rem; stroke-width: 1; }
+.iza-character .stop-foot { left: clamp(.65rem, 5vw, 1.45rem); }
+.iza-character .play-foot { right: clamp(.65rem, 5vw, 1.45rem); }
+.iza-character .character-foot:disabled { cursor: default; opacity: .5; }
+.iza-character.running .stop-foot, .iza-character.paused .stop-foot, .iza-character.goal-reached .stop-foot { color: white; background: var(--pink); border-color: rgba(255,255,255,.3); }
+.iza-character .active-control { color: white; background: var(--orange); }
+.iza-character.paused .eye { height: .22rem; border-radius: 999px; }
+.iza-character.paused .smile { width: 1.35rem; height: .24rem; top: .4rem; border: 0; border-radius: 999px; background: var(--brown); }
+.character-sparkle { position: absolute; z-index: 7; color: var(--orange); font-size: 1.55rem; animation: sparkle-pop 1.4s ease-in-out infinite; }
+.sparkle-left { left: .2rem; top: 4rem; }
+.sparkle-right { right: .15rem; top: 2.9rem; animation-delay: .35s; }
+.iza-character.compact { width: 7.4rem; height: 7.4rem; flex: none; }
+.iza-character.compact .character-body { width: 5.8rem; padding-top: 1.7rem; top: .65rem; }
+.iza-character.compact .ear { width: 1.75rem; height: 1.75rem; top: .75rem; }
+.iza-character.compact .ear-left { left: .15rem; }
+.iza-character.compact .ear-right { right: .15rem; }
+.iza-character.compact .arm { width: .7rem; height: 1.65rem; top: 3.75rem; }
+.iza-character.compact .arm-left { left: .35rem; }
+.iza-character.compact .arm-right { right: .35rem; }
+.iza-character.compact .face { width: 3.25rem; height: 1rem; margin-bottom: 0; }
+.iza-character.compact .eye { width: .42rem; height: .42rem; }
+.iza-character.compact .smile { width: 1rem; height: .5rem; border-width: .18rem; border-top: 0; }
+.iza-character.compact.resting .eye { height: .16rem; }
+.iza-character.compact.encouraging .arm-left { transform: rotate(35deg) translateY(-.35rem); }
+@keyframes sparkle-pop { 50% { transform: translateY(-.28rem) scale(1.15); } }
+@media (max-width: 365px) {
+  .iza-character .character-body { width: clamp(9.7rem, 51vw, 10.25rem); padding-top: 3rem; }
+  .iza-character .character-time { font-size: clamp(1.65rem, 8.8vw, 1.85rem); }
+  .iza-character .ear-left { left: .1rem; }
+  .iza-character .ear-right { right: .1rem; }
+  .iza-character .arm { width: 1.35rem; height: 3.2rem; top: 7.25rem; }
+  .iza-character .arm-left { left: -.15rem; }
+  .iza-character .arm-right { right: -.15rem; }
+  .iza-character .face { width: 5rem; height: 1.75rem; margin-bottom: .55rem; }
+  .iza-character .eye { width: .66rem; height: .66rem; }
+  .iza-character .smile { width: 1.5rem; height: .75rem; border-width: .25rem; border-top: 0; }
+  .iza-character .character-foot { width: 3.55rem; height: 3.55rem; }
+}

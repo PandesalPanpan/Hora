@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { elapsedSeconds, formatDuration, sessionSeconds } from './time'
+import { activeSessionSeconds, elapsedSeconds, formatDuration, sessionSeconds } from './time'
 
 describe('time calculations', () => {
   it('calculates elapsed time from timestamps rather than ticks', () => {
@@ -13,6 +13,17 @@ describe('time calculations', () => {
       startedAt: '2026-09-12T06:00:00.000Z',
       finishedAt: '2026-09-12T06:30:05.000Z',
     })).toBe(1805)
+  })
+
+  it('excludes stored and current pause time from an active session', () => {
+    expect(activeSessionSeconds({
+      id: 'one',
+      activity: { id: 'study', name: 'Study', color: '#000' },
+      startedAt: '2026-09-12T06:00:00.000Z',
+      pausedSeconds: 300,
+      pausedAt: '2026-09-12T06:20:00.000Z',
+      status: 'paused',
+    }, new Date('2026-09-12T06:30:00.000Z'))).toBe(900)
   })
 
   it('formats stopwatch durations', () => {

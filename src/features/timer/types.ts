@@ -8,6 +8,10 @@ export type ActiveSession = {
   id: string
   activity: Activity
   startedAt: string
+  targetMinutes?: number | null
+  status?: 'running' | 'paused' | 'completed'
+  pausedAt?: string | null
+  pausedSeconds?: number
 }
 
 export type CompletedSession = ActiveSession & {

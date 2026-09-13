@@ -10,6 +10,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ActiveSession, Activity, CompletedSession } from '../timer/types'
 import type { PlannedBlock, PlannerCategory } from './types'
+import { sessionSeconds } from '../../lib/time'
 import './Planner.css'
 
 type PlannerProps = {
@@ -29,6 +30,7 @@ type CalendarEvent = {
   start: Date
   end: Date
   plannedMinutes?: number
+  actualMinutes?: number
 }
 
 type DraftBlock = {
@@ -143,6 +145,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
       color: session.activity.color,
       start: new Date(session.startedAt),
       end: new Date(session.finishedAt),
+      actualMinutes: Math.max(1, Math.round(sessionSeconds(session) / 60)),
     }))
     const liveEvent = active ? [{
       id: active.id,
@@ -151,10 +154,11 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
       category: 'Timeflow',
       color: active.activity.color,
       start: new Date(active.startedAt),
-      end: now,
+      end: active.status === 'paused' && active.pausedAt ? new Date(active.pausedAt) : now,
+      actualMinutes: Math.max(1, Math.round(elapsed / 60)),
     }] : []
     return [...plannedEvents, ...completedEvents, ...liveEvent]
-  }, [active, completed, now, planned])
+  }, [active, completed, elapsed, now, planned])
 
   const linkedPlan = useMemo(() => {
     if (!inspected || inspected.kind === 'planned') return null
@@ -380,7 +384,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
           <section className="event-inspector" aria-label={`${inspected.title} details`}>
             <header><div><span>{inspected.kind === 'planned' ? 'Planned block' : inspected.kind === 'live' ? 'Live Timeflow' : 'Completed Timeflow'}</span><h2>{inspected.title}</h2></div><button type="button" onClick={() => setInspected(null)} aria-label="Close details"><X /></button></header>
             <p><Clock3 /> {inspected.start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} - {inspected.end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</p>
-            <div className="comparison-row"><span>Planned<strong>{inspected.plannedMinutes ? formatDuration(inspected.plannedMinutes) : linkedPlan ? formatDuration(durationMinutes(linkedPlan.start, linkedPlan.end)) : 'No linked plan'}</strong></span><span>Actual logged<strong>{inspected.kind === 'planned' ? 'Not tracked yet' : formatDuration(durationMinutes(inspected.start, inspected.end))}</strong></span></div>
+            <div className="comparison-row"><span>Planned<strong>{inspected.plannedMinutes ? formatDuration(inspected.plannedMinutes) : linkedPlan ? formatDuration(durationMinutes(linkedPlan.start, linkedPlan.end)) : 'No linked plan'}</strong></span><span>Actual logged<strong>{inspected.kind === 'planned' ? 'Not tracked yet' : formatDuration(inspected.actualMinutes ?? durationMinutes(inspected.start, inspected.end))}</strong></span></div>
             {inspected.kind === 'live' && <button className="stop-live-button" type="button" onClick={() => { onFinish(); setInspected(null) }}><Square fill="currentColor" /> Stop Timeflow</button>}
           </section>
         </div>

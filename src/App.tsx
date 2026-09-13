@@ -1,228 +1,92 @@
-import {
-  BarChart3,
-  Bell,
-  CalendarDays,
-  CheckSquare,
-  Clock3,
-  Menu,
-  Minus,
-  Pencil,
-  Play,
-  Plus,
-  Square,
-} from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { useTimer } from './features/timer/useTimer'
-import type { Activity } from './features/timer/types'
+import { BarChart3, Bell, CalendarDays, CheckSquare, Clock3, Menu, Settings, X } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { Planner } from './features/planner/Planner'
-import { formatCompactDuration, formatDuration, isSameLocalDay, sessionSeconds } from './lib/time'
+import { useTimer } from './features/timer/useTimer'
+import { formatDuration } from './lib/time'
+import { ReportsPage } from './pages/ReportsPage'
+import { SettingsPage } from './pages/SettingsPage'
+import { TasksPage } from './pages/TasksPage'
+import { TimeflowPage } from './pages/TimeflowPage'
 import './App.css'
 
-type ActivityGroup = 'Focus' | 'Leisure' | 'Others' | 'Rest'
+type AppRoute = '/today' | '/tasks' | '/planner' | '/reports' | '/settings'
 
-const groups: Record<ActivityGroup, Activity[]> = {
-  Focus: [
-    { id: 'study', name: 'Study', color: '#d92f6f' },
-    { id: 'work', name: 'Work', color: '#dda1aa' },
-    { id: 'self-study', name: 'Self-study', color: '#f5c8b8' },
-    { id: 'custom', name: 'Custom', color: '#cfd2d2' },
-  ],
-  Leisure: [
-    { id: 'reading', name: 'Reading', color: '#d92f6f' },
-    { id: 'games', name: 'Games', color: '#dda1aa' },
-    { id: 'music', name: 'Music', color: '#f5c8b8' },
-  ],
-  Others: [
-    { id: 'exercise', name: 'Exercise', color: '#ff8b45' },
-    { id: 'errands', name: 'Errands', color: '#dda1aa' },
-  ],
-  Rest: [
-    { id: 'break', name: 'Break', color: '#4d862a' },
-    { id: 'sleep', name: 'Sleep', color: '#91bd78' },
-  ],
-}
+const routes = new Set<AppRoute>(['/today', '/tasks', '/planner', '/reports', '/settings'])
 
-const categoryColors: Record<ActivityGroup, string> = {
-  Focus: '#915449',
-  Leisure: '#d92f6f',
-  Others: '#ff8b45',
-  Rest: '#4d862a',
-}
-
-const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
-
-function longDuration(totalSeconds: number) {
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+function routeFromHash(): AppRoute {
+  const route = window.location.hash.slice(1) as AppRoute
+  return routes.has(route) ? route : '/today'
 }
 
 export default function App() {
-  const { active, completed, elapsed, start, finish } = useTimer()
-  const [page, setPage] = useState<'timeflow' | 'calendar'>('timeflow')
-  const [mode, setMode] = useState<'flowtime' | 'pomodoro'>('flowtime')
-  const [group, setGroup] = useState<ActivityGroup>('Focus')
-  const [selected, setSelected] = useState<Activity>(groups.Focus[0])
-  const [goal, setGoal] = useState<number | null>(25)
+  const timer = useTimer()
+  const [route, setRoute] = useState<AppRoute>(routeFromHash)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (!window.location.hash) window.history.replaceState(null, '', '#/today')
+    const syncRoute = () => setRoute(routeFromHash())
+    window.addEventListener('hashchange', syncRoute)
+    return () => window.removeEventListener('hashchange', syncRoute)
+  }, [])
 
   useEffect(() => {
     document.documentElement.scrollTop = 0
     document.body.scrollTop = 0
-  }, [page])
-  const todaySessions = useMemo(
-    () => completed.filter((session) => isSameLocalDay(session.startedAt)),
-    [completed],
-  )
-  const currentActivity = active?.activity ?? selected
+    const names: Record<AppRoute, string> = { '/today': 'Timeflow', '/tasks': 'Tasks', '/planner': 'Planner', '/reports': 'Reports', '/settings': 'Settings' }
+    document.title = `${names[route]} · Iza`
+  }, [route])
 
-  const selectGroup = (nextGroup: ActivityGroup) => {
-    setGroup(nextGroup)
-    setSelected(groups[nextGroup][0])
-  }
+  const navigate = useCallback((next: AppRoute) => {
+    if (window.location.hash !== `#${next}`) window.history.pushState(null, '', `#${next}`)
+    setRoute(next)
+    setMenuOpen(false)
+  }, [])
 
   return (
     <main className="app-canvas">
       <section className="app-shell" id="top">
         <header className="topbar">
-          <button className="plain-icon menu-button" type="button" aria-label="Open menu"><Menu /></button>
-          <a className="brand" href="#top" aria-label="Iza home"><span>I</span>za</a>
-          <button className="notification-button" type="button" aria-label="Notifications">
-            <Bell aria-hidden="true" />
-            <span aria-hidden="true" />
-          </button>
+          <button className="plain-icon menu-button" type="button" aria-label="Open menu" onClick={() => setMenuOpen(true)}><Menu /></button>
+          <button className="brand" type="button" onClick={() => navigate('/today')} aria-label="Iza home"><span>I</span>za</button>
+          <button className="notification-button" type="button" aria-label="Notifications"><Bell aria-hidden="true" /><span aria-hidden="true" /></button>
         </header>
 
-        {page === 'timeflow' && <div className="mode-switch" aria-label="Timer mode">
-          <button className={mode === 'flowtime' ? 'selected' : ''} type="button" onClick={() => setMode('flowtime')}>Flowtime</button>
-          <button className={mode === 'pomodoro' ? 'selected' : ''} type="button" onClick={() => setMode('pomodoro')}>Pomodoro</button>
-        </div>}
+        {timer.active && route !== '/today' && (
+          <button className="active-session-dock" type="button" onClick={() => navigate('/today')}>
+            <span style={{ backgroundColor: timer.active.activity.color }}><Clock3 /></span>
+            <span><strong>{timer.active.activity.name}</strong><small>{timer.active.status === 'paused' ? 'Paused' : 'Tracking now'}</small></span>
+            <b>{formatDuration(timer.elapsed)}</b>
+          </button>
+        )}
 
         <section className="content-panel">
-          {page === 'timeflow' ? <>
-          <h1>What are you working on?</h1>
-
-          <section className="timer-scene" aria-label="Timer">
-            <div className={`timer-character ${active ? 'running' : ''}`}>
-              <span className="ear ear-left" aria-hidden="true" />
-              <span className="ear ear-right" aria-hidden="true" />
-              <span className="arm arm-left" aria-hidden="true" />
-              <span className="arm arm-right" aria-hidden="true" />
-              <div className="character-body">
-                <span className="sr-only">{active ? `${active.activity.name} in progress` : 'Timer ready'}</span>
-                <div className="face" aria-hidden="true">
-                  <span className="eye eye-left" />
-                  <span className="smile" />
-                  <span className="eye eye-right" />
-                </div>
-                <strong className="character-time" aria-label={`${formatDuration(elapsed)} elapsed`}>{longDuration(elapsed)}</strong>
-              </div>
-              <button
-                className="character-foot stop-foot"
-                type="button"
-                onClick={finish}
-                disabled={!active}
-                aria-label="Finish session"
-              >
-                <Square fill="currentColor" aria-hidden="true" />
-              </button>
-              <button
-                className="character-foot play-foot"
-                type="button"
-                onClick={() => start(selected)}
-                disabled={Boolean(active)}
-                aria-label={`Start ${selected.name} session`}
-              >
-                <Play fill="currentColor" aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className="timer-options">
-              <div className="speech-bubble"><span>{currentActivity.name}</span></div>
-              <fieldset className="goal-picker">
-                <legend>Set min goal:</legend>
-                {[25, 30, 60].map((minutes) => (
-                  <button
-                    key={minutes}
-                    className={goal === minutes ? 'selected' : ''}
-                    type="button"
-                    onClick={() => setGoal(minutes)}
-                    aria-label={`Set ${minutes} minute goal`}
-                  >{minutes}</button>
-                ))}
-                <button className={goal === null ? 'selected no-goal' : 'no-goal'} type="button" onClick={() => setGoal(null)} aria-label="No time goal"><Minus /></button>
-              </fieldset>
-            </div>
-          </section>
-
-          <section className="label-section" aria-labelledby="labels-title">
-            <div className="category-tabs" role="tablist" aria-label="Activity categories">
-              {(Object.keys(groups) as ActivityGroup[]).map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  role="tab"
-                  aria-selected={group === name}
-                  onClick={() => selectGroup(name)}
-                  style={{ '--tab-color': categoryColors[name] } as React.CSSProperties}
-                >{name}</button>
-              ))}
-            </div>
-            <div className="label-picker">
-              <h2 id="labels-title" className="sr-only">{group} labels</h2>
-              <div className="label-list">
-                {groups[group].map((activity) => (
-                  <button
-                    key={activity.id}
-                    className={selected.id === activity.id ? 'selected' : ''}
-                    type="button"
-                    onClick={() => setSelected(activity)}
-                    aria-label={activity.name}
-                  >
-                    <span className="label-dot" style={{ backgroundColor: activity.color }} aria-hidden="true">
-                      {activity.id === 'custom' && <Plus />}
-                    </span>
-                    <span>{activity.name}</span>
-                  </button>
-                ))}
-              </div>
-              <span className="fake-scrollbar" aria-hidden="true"><i /></span>
-            </div>
-          </section>
-
-          <section className="quick-labels" aria-labelledby="quick-title">
-            <h2 id="quick-title">Quick Labels</h2>
-            {todaySessions.length === 0 ? (
-              <div className="quick-card empty-quick">
-                <div><strong>{selected.name}</strong><span>Ready to track</span></div>
-                <button type="button" onClick={() => start(selected)} aria-label={`Start ${selected.name} from quick label`}><Plus /></button>
-              </div>
-            ) : (
-              todaySessions.slice(0, 2).map((session) => (
-                <article className="quick-card" key={session.id}>
-                  <div className="quick-main">
-                    <p><strong style={{ color: session.activity.color }}>{session.activity.name}</strong> <span>(Track)</span></p>
-                    <b>{formatCompactDuration(sessionSeconds(session))}</b>
-                  </div>
-                  <div className="quick-meta">
-                    <strong>{timeFormatter.format(new Date(session.startedAt))} - {timeFormatter.format(new Date(session.finishedAt))}</strong>
-                    <span>{goal ? 'Min goal reached' : 'Session complete'}</span>
-                  </div>
-                  <div className="quick-actions" aria-hidden="true"><span><Plus /></span><span><Pencil /></span></div>
-                </article>
-              ))
-            )}
-          </section>
-
-          </> : <Planner active={active} completed={completed} elapsed={elapsed} onFinish={finish} onStart={start} />}
+          {route === '/today' && <TimeflowPage {...timer} />}
+          {route === '/tasks' && <TasksPage active={timer.active} onStart={timer.start} />}
+          {route === '/planner' && <Planner active={timer.active} completed={timer.completed} elapsed={timer.elapsed} onFinish={timer.finish} onStart={timer.start} />}
+          {route === '/reports' && <ReportsPage completed={timer.completed} />}
+          {route === '/settings' && <SettingsPage />}
 
           <nav className="bottom-nav" aria-label="Primary navigation">
-            <button type="button" className={page === 'timeflow' ? 'active' : ''} onClick={() => setPage('timeflow')} aria-current={page === 'timeflow' ? 'page' : undefined} aria-label="Timeflow timer"><Clock3 /></button>
-            <span aria-disabled="true" aria-label="Tasks"><CheckSquare /></span>
-            <button type="button" className={page === 'calendar' ? 'active' : ''} onClick={() => setPage('calendar')} aria-current={page === 'calendar' ? 'page' : undefined} aria-label="Planner calendar"><CalendarDays /></button>
-            <span aria-disabled="true" aria-label="Reports"><BarChart3 /></span>
+            <button type="button" onClick={() => navigate('/today')} aria-current={route === '/today' ? 'page' : undefined} aria-label="Timeflow timer"><Clock3 /><span>Timeflow</span></button>
+            <button type="button" onClick={() => navigate('/tasks')} aria-current={route === '/tasks' ? 'page' : undefined} aria-label="Tasks"><CheckSquare /><span>Tasks</span></button>
+            <button type="button" onClick={() => navigate('/planner')} aria-current={route === '/planner' ? 'page' : undefined} aria-label="Planner calendar"><CalendarDays /><span>Planner</span></button>
+            <button type="button" onClick={() => navigate('/reports')} aria-current={route === '/reports' ? 'page' : undefined} aria-label="Reports"><BarChart3 /><span>Reports</span></button>
           </nav>
         </section>
+
+        {menuOpen && (
+          <div className="menu-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setMenuOpen(false)}>
+            <aside className="app-menu" aria-label="App menu">
+              <header><span className="brand-static"><i>I</i>za</span><button type="button" onClick={() => setMenuOpen(false)} aria-label="Close menu"><X /></button></header>
+              <p>Plan gently. Track honestly.</p>
+              <button type="button" onClick={() => navigate('/today')}><Clock3 />Timeflow</button>
+              <button type="button" onClick={() => navigate('/planner')}><CalendarDays />Planner</button>
+              <button type="button" onClick={() => navigate('/settings')}><Settings />Settings</button>
+              <small>Local-first preview · Android ready</small>
+            </aside>
+          </div>
+        )}
       </section>
     </main>
   )

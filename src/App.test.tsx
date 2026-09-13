@@ -8,6 +8,7 @@ describe('first timer vertical slice', () => {
     vi.setSystemTime(new Date('2026-09-12T06:00:00.000Z'))
     vi.stubGlobal('crypto', { randomUUID: () => 'session-one' })
     localStorage.clear()
+    window.history.replaceState(null, '', '#/today')
   })
 
   afterEach(() => {
@@ -31,8 +32,20 @@ describe('first timer vertical slice', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Finish session' }))
 
     expect(screen.getByText('1m')).toBeInTheDocument()
-    expect(screen.getByText('Min goal reached')).toBeInTheDocument()
+    expect(screen.getByText('Session complete')).toBeInTheDocument()
     restored.unmount()
+  })
+
+  it('excludes paused time and resumes the same session', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Start Study session' }))
+    act(() => vi.advanceTimersByTime(60_000))
+    fireEvent.click(screen.getByRole('button', { name: 'Pause session' }))
+    act(() => vi.advanceTimersByTime(120_000))
+    expect(screen.getByLabelText('01:00 elapsed')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Resume session' }))
+    act(() => vi.advanceTimersByTime(30_000))
+    expect(screen.getByLabelText('01:30 elapsed')).toBeInTheDocument()
   })
 
   it('drills from the week into a day and creates a planned block', () => {
@@ -59,5 +72,15 @@ describe('first timer vertical slice', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start via Timeflow' }))
 
     expect(screen.getByRole('button', { name: /^Essay outline Timeflow Live/ })).toBeInTheDocument()
+  })
+
+  it('uses URL-backed navigation for tasks and reports', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Tasks' }))
+    expect(window.location.hash).toBe('#/tasks')
+    expect(screen.getByRole('heading', { name: 'Tasks' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reports' }))
+    expect(window.location.hash).toBe('#/reports')
+    expect(screen.getByRole('heading', { name: 'This week' })).toBeInTheDocument()
   })
 })
