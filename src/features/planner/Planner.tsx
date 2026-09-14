@@ -93,12 +93,13 @@ function loadBlocks(): PlannedBlock[] {
 }
 
 function draftFor(date: Date, hour = 9): DraftBlock {
+  const endTime = hour === 23 ? '23:59' : `${pad(hour + 1)}:00`
   return {
     date: dateKey(date),
     title: '',
     category: 'Focus',
     startTime: `${pad(hour)}:00`,
-    endTime: `${pad(Math.min(hour + 1, 23))}:00`,
+    endTime,
   }
 }
 

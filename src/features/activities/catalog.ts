@@ -1,6 +1,6 @@
 import type { Activity } from '../timer/types'
 
-export type ActivityGroup = 'Focus' | 'Leisure' | 'Others' | 'Rest'
+export type ActivityGroup = 'Focus' | 'Leisure' | 'Life' | 'Rest'
 
 export const activityGroups: Record<ActivityGroup, Activity[]> = {
   Focus: [
@@ -14,7 +14,7 @@ export const activityGroups: Record<ActivityGroup, Activity[]> = {
     { id: 'games', name: 'Games', color: '#dda1aa' },
     { id: 'music', name: 'Music', color: '#f5c8b8' },
   ],
-  Others: [
+  Life: [
     { id: 'exercise', name: 'Exercise', color: '#ff8b45' },
     { id: 'errands', name: 'Errands', color: '#dda1aa' },
   ],
@@ -27,7 +27,6 @@ export const activityGroups: Record<ActivityGroup, Activity[]> = {
 export const categoryColors: Record<ActivityGroup, string> = {
   Focus: '#915449',
   Leisure: '#d92f6f',
-  Others: '#ff8b45',
+  Life: '#ff8b45',
   Rest: '#4d862a',
 }
-

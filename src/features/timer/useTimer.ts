@@ -62,7 +62,14 @@ export function useTimer() {
     setNow(Date.now())
   }, [active])
 
-  const finish = useCallback(() => {
+  const setTargetMinutes = useCallback((targetMinutes: number | null) => {
+    if (!active) return
+    const session: ActiveSession = { ...active, targetMinutes }
+    localStore.setActive(session)
+    setActive(session)
+  }, [active])
+
+  const finish = useCallback((): CompletedSession | undefined => {
     if (!active) return
     const finishedAt = new Date().toISOString()
     const finalPausedSeconds = (active.pausedSeconds ?? 0) + (active.pausedAt
@@ -79,7 +86,12 @@ export function useTimer() {
     localStore.setActive(null)
     setCompleted(sessions)
     setActive(null)
+    return session
   }, [active])
+
+  const updateCompleted = useCallback((id: string, patch: Partial<Pick<CompletedSession, 'activity' | 'note' | 'mood'>>) => {
+    setCompleted(localStore.updateCompleted(id, patch))
+  }, [])
 
   return {
     active,
@@ -88,6 +100,8 @@ export function useTimer() {
     start,
     pause,
     resume,
+    setTargetMinutes,
     finish,
+    updateCompleted,
   }
 }

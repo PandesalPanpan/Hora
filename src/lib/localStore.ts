@@ -31,4 +31,10 @@ export const localStore = {
     localStorage.setItem(COMPLETED_KEY, JSON.stringify(sessions))
     return sessions
   },
+
+  updateCompleted(id: string, patch: Partial<Pick<CompletedSession, 'activity' | 'note' | 'mood'>>): CompletedSession[] {
+    const sessions = this.getCompleted().map((session) => session.id === id ? { ...session, ...patch } : session)
+    localStorage.setItem(COMPLETED_KEY, JSON.stringify(sessions))
+    return sessions
+  },
 }

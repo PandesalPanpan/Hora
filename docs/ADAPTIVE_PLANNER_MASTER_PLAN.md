@@ -1401,6 +1401,11 @@ It is:
 
 > **The user chooses to open the app during their normal day without being reminded to test it.**
 
+### Validated mobile polish backlog
+
+- Preserve Iza's connected shoulder geometry in every responsive character state.
+- Consider a subtle waving-arm animation for encouraging states after higher-priority usability work. It must respect reduced-motion preferences and keep the character secondary to task scanning.
+
 ---
 
 # 27. Immediate Next Steps

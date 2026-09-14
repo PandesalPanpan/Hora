@@ -16,4 +16,6 @@ export type ActiveSession = {
 
 export type CompletedSession = ActiveSession & {
   finishedAt: string
+  note?: string
+  mood?: 'calm' | 'focused' | 'tired'
 }

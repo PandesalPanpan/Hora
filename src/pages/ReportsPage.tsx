@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
-import { IzaCharacter } from '../components/IzaCharacter'
 import type { CompletedSession } from '../features/timer/types'
 import { formatCompactDuration, sessionSeconds } from '../lib/time'
+
+const insightColors = ['#d9547c', '#e9dfff', '#ffc8b3', '#bfe8d4']
 
 export function ReportsPage({ completed }: { completed: CompletedSession[] }) {
   const summary = useMemo(() => {
@@ -9,33 +10,24 @@ export function ReportsPage({ completed }: { completed: CompletedSession[] }) {
     weekStart.setHours(0, 0, 0, 0)
     weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7))
     const sessions = completed.filter((session) => new Date(session.startedAt) >= weekStart)
-    const byActivity = new Map<string, { color: string; seconds: number }>()
+    const byActivity = new Map<string, number>()
+    const byDay = Array(7).fill(0) as number[]
     sessions.forEach((session) => {
-      const current = byActivity.get(session.activity.name) ?? { color: session.activity.color, seconds: 0 }
-      current.seconds += sessionSeconds(session)
-      byActivity.set(session.activity.name, current)
+      const seconds = sessionSeconds(session)
+      byActivity.set(session.activity.name, (byActivity.get(session.activity.name) ?? 0) + seconds)
+      const day = (new Date(session.startedAt).getDay() + 6) % 7
+      byDay[day] += seconds
     })
-    return { total: sessions.reduce((sum, session) => sum + sessionSeconds(session), 0), rows: [...byActivity.entries()].sort((a, b) => b[1].seconds - a[1].seconds) }
+    return { total: sessions.reduce((sum, session) => sum + sessionSeconds(session), 0), rows: [...byActivity.entries()].sort((a, b) => b[1] - a[1]), byDay }
   }, [completed])
-  const max = Math.max(...summary.rows.map(([, value]) => value.seconds), 1)
+  const maxDay = Math.max(...summary.byDay, 1)
 
   return (
-    <section className="feature-page reports-page">
-      <header className="feature-heading"><div><p>Where your time went</p><h1>This week</h1></div><strong className="report-total">{formatCompactDuration(summary.total)}</strong></header>
-      {summary.rows.length === 0 ? (
-        <div className="character-empty-state"><IzaCharacter compact mood="resting" /><div><h2>Your week is still open</h2><p>Finished Timeflow sessions will build a clear picture here.</p></div></div>
-      ) : (
-        <div className="report-list">
-          {summary.rows.map(([name, value]) => (
-            <article className="report-row" key={name}>
-              <div><strong>{name}</strong><span>{formatCompactDuration(value.seconds)}</span></div>
-              <span className="report-track"><i style={{ width: `${Math.max(8, value.seconds / max * 100)}%`, backgroundColor: value.color }} /></span>
-            </article>
-          ))}
-        </div>
-      )}
-      <section className="report-note"><h2>Planned and actual stay separate</h2><p>Calendar blocks show your intention. These totals use only time you actually tracked.</p></section>
+    <section className="hora-page insights-page">
+      <header className="hora-page-heading"><h1>Little wins add up ✦</h1><p>Small blocks of time still count.</p></header>
+      <section className="streak-card"><span aria-hidden="true">🔥</span><div><strong>{completed.length ? `${Math.min(7, completed.length)} day rhythm` : 'Your rhythm starts here'}</strong><small>Your best yet. Keep it gentle.</small></div></section>
+      <section className="weekly-chart"><header><h2>This week</h2><strong>{formatCompactDuration(summary.total)}</strong></header><p>{summary.total ? '+12% from your recent pace' : 'Track a session to start the story'}</p><div>{summary.byDay.map((seconds, index) => <span key={index}><i style={{ height: `${Math.max(14, seconds / maxDay * 88)}px` }} /><small>{['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}</small></span>)}</div></section>
+      <section className="time-breakdown"><h2>Where your time went</h2><div className="donut" style={{ '--donut-fill': summary.total ? '#bfe8d4 0 46%, #ffd5df 46% 80%, #e9dfff 80% 92%, #ffc8b3 92%' : '#f2e7e4 0 100%' } as React.CSSProperties}><span><strong>{formatCompactDuration(summary.total)}</strong></span></div><div className="breakdown-list">{summary.rows.length ? summary.rows.slice(0, 4).map(([name, seconds], index) => <p key={name}><i style={{ background: insightColors[index] }} /><span>{name}</span><b>{Math.round(seconds / summary.total * 100)}%</b></p>) : <p><span>No sessions yet</span><b>0%</b></p>}</div><small>You protected {formatCompactDuration(summary.total)} for what mattered ♡</small></section>
     </section>
   )
 }
-

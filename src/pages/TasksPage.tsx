@@ -27,7 +27,7 @@ export function TasksPage({ active, onStart }: TasksPageProps) {
     <section className="feature-page tasks-page">
       <header className="feature-heading"><div><p>Your next steps</p><h1>Tasks</h1></div><span>{openCount} open</span></header>
       <form className="task-composer" onSubmit={(event) => { event.preventDefault(); addTask() }}>
-        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Add something you want to finish" aria-label="New task" />
+        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Add a task" aria-label="New task" />
         <button type="submit" aria-label="Add task"><Plus /></button>
       </form>
       {tasks.length === 0 ? (
@@ -46,4 +46,3 @@ export function TasksPage({ active, onStart }: TasksPageProps) {
     </section>
   )
 }
-

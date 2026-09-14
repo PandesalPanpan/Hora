@@ -1,22 +1,22 @@
-@import '@fontsource/poppins/400.css';
-@import '@fontsource/poppins/600.css';
-@import '@fontsource/poppins/700.css';
-@import '@fontsource/poppins/800.css';
-@import '@fontsource/arima/400.css';
+@import '@fontsource/nunito/400.css';
+@import '@fontsource/nunito/600.css';
+@import '@fontsource/nunito/700.css';
+@import '@fontsource/fredoka/600.css';
+@import '@fontsource/fredoka/700.css';
 
 :root {
-  font-family: 'Poppins', 'Segoe UI', sans-serif;
-  color: #4b302c;
-  background: #f5deda;
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
+  color: #5c3b36;
+  background: #ecebea;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
 * { box-sizing: border-box; }
 
-html { width: 100%; min-width: 320px; min-height: 100%; overflow-x: hidden; scroll-behavior: smooth; background: #f5deda; }
-body, #root { width: 100%; min-width: 0; min-height: 100%; }
-body { margin: 0; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; overscroll-behavior-y: none; }
+html { width: 100%; min-width: 320px; height: 100%; overflow: hidden; scroll-behavior: smooth; background: #ecebea; }
+body, #root { width: 100%; min-width: 0; height: 100%; overflow: hidden; }
+body { margin: 0; overscroll-behavior-y: none; }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #276b88; outline-offset: 3px; }
