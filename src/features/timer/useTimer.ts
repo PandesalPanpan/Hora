@@ -6,6 +6,7 @@ import { cancelMilestoneNotification, scheduleMilestoneNotification } from '../.
 
 export type TimerStartOptions = {
   taskId?: string
+  taskTitleSnapshot?: string
   plannedBlockId?: string
   timerMode?: 'flowtime' | 'pomodoro'
   pomodoro?: ActiveSession['pomodoro']
@@ -125,8 +126,9 @@ export function useTimer() {
     return session
   }, [active])
 
-  const updateCompleted = useCallback((id: string, patch: Partial<Pick<CompletedSession, 'activity' | 'note' | 'mood' | 'startedAt' | 'finishedAt'>>) => {
-    setCompleted(localStore.updateCompleted(id, patch))
+  const updateCompleted = useCallback(async (id: string, patch: Partial<Pick<CompletedSession, 'activity' | 'note' | 'mood' | 'startedAt' | 'finishedAt'>>) => {
+    const sessions = await localStore.updateCompleted(id, patch)
+    setCompleted(sessions)
   }, [])
 
   const deleteCompleted = useCallback((id: string) => {

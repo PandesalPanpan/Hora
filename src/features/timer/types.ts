@@ -13,6 +13,7 @@ export type ActiveSession = {
   pausedAt?: string | null
   pausedSeconds?: number
   taskId?: string
+  taskTitleSnapshot?: string
   plannedBlockId?: string
   timerMode?: 'flowtime' | 'pomodoro'
   targetAcknowledged?: boolean

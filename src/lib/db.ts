@@ -2,6 +2,9 @@ import Dexie, { type EntityTable } from 'dexie'
 import type { PlannedBlock } from '../features/planner/types'
 import type { ActiveSession, CompletedSession } from '../features/timer/types'
 import type { Task } from '../features/tasks/types'
+import type { ActivityPreset } from '../features/activities/types'
+import { activityGroups } from '../features/activities/catalog'
+import { normalizeActivityName } from '../features/activities/types'
 
 export type StoredSession = ActiveSession & { finishedAt?: string }
 
@@ -11,6 +14,7 @@ class IzaDatabase extends Dexie {
   sessions!: EntityTable<StoredSession, 'id'>
   plannedBlocks!: EntityTable<PlannedBlock, 'id'>
   tasks!: EntityTable<Task, 'id'>
+  activities!: EntityTable<ActivityPreset, 'id'>
   meta!: EntityTable<MetaRecord, 'key'>
 
   constructor() {
@@ -20,6 +24,36 @@ class IzaDatabase extends Dexie {
       plannedBlocks: '&id,startedAt,finishedAt,taskId',
       tasks: '&id,completed,updatedAt',
       meta: '&key',
+    })
+    this.version(2).stores({
+      sessions: '&id,status,startedAt,finishedAt,activity.id,taskId,plannedBlockId',
+      plannedBlocks: '&id,startedAt,finishedAt,taskId,activityId,recurrenceSeriesId,occurrenceDate',
+      tasks: '&id,completed,completedAt,priorityOrder,updatedAt',
+      activities: '&id,&normalizedName,category,archived,order',
+      meta: '&key',
+    }).upgrade(async (transaction) => {
+      const tasks = transaction.table<Task>('tasks')
+      const existing = await tasks.toArray()
+      await Promise.all(existing.map((task, index) => tasks.put({
+        ...task,
+        estimateMinutes: task.estimateMinutes ?? null,
+        priorityOrder: task.priorityOrder ?? index,
+        completedAt: task.completed ? task.completedAt ?? task.updatedAt ?? new Date().toISOString() : null,
+      })))
+    })
+    this.version(3).stores({
+      sessions: '&id,status,startedAt,finishedAt,activity.id,taskId,plannedBlockId',
+      plannedBlocks: '&id,startedAt,finishedAt,taskId,activityId,recurrenceSeriesId,occurrenceDate',
+      tasks: '&id,completed,completedAt,priorityOrder,updatedAt',
+      activities: '&id,&normalizedName,category,archived,order',
+      meta: '&key',
+    }).upgrade(async (transaction) => {
+      const activities = transaction.table<ActivityPreset>('activities')
+      const now = new Date().toISOString()
+      const presets = Object.entries(activityGroups).flatMap(([category, items]) => items.filter((item) => item.id !== 'custom').map((item, order) => ({
+        ...item, normalizedName: normalizeActivityName(item.name), category: category as ActivityPreset['category'], archived: false, order, builtIn: true, createdAt: now, updatedAt: now,
+      })))
+      await activities.bulkPut(presets)
     })
   }
 }
@@ -62,17 +96,19 @@ export async function migrateLegacyLocalStorage(): Promise<void> {
 
 export async function loadDatabaseState() {
   await migrateLegacyLocalStorage()
-  const [active, completed, planned, tasks] = await Promise.all([
+  const [active, completed, planned, tasks, activities] = await Promise.all([
     db.sessions.where('status').anyOf('running', 'paused').first(),
     db.sessions.where('status').equals('completed').reverse().sortBy('startedAt'),
     db.plannedBlocks.orderBy('startedAt').toArray(),
     db.tasks.orderBy('updatedAt').toArray(),
+    db.activities.orderBy('order').toArray(),
   ])
   return {
     active: active ?? null,
     completed: completed as CompletedSession[],
     planned,
     tasks: tasks.reverse(),
+    activities,
   }
 }
 

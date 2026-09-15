@@ -40,11 +40,12 @@ export const localStore = {
     return sessions
   },
 
-  updateCompleted(id: string, patch: Partial<Pick<CompletedSession, 'activity' | 'note' | 'mood' | 'startedAt' | 'finishedAt'>>): CompletedSession[] {
+  async updateCompleted(id: string, patch: Partial<Pick<CompletedSession, 'activity' | 'note' | 'mood' | 'startedAt' | 'finishedAt'>>): Promise<CompletedSession[]> {
     const sessions = this.getCompleted().map((session) => session.id === id ? { ...session, ...patch } : session)
-    localStorage.setItem(COMPLETED_KEY, JSON.stringify(sessions))
     const updated = sessions.find((session) => session.id === id)
-    if (updated) void db.sessions.put(updated).catch(() => undefined)
+    if (!updated) throw new Error('The time log could not be found.')
+    await db.sessions.put(updated)
+    localStorage.setItem(COMPLETED_KEY, JSON.stringify(sessions))
     return sessions
   },
 

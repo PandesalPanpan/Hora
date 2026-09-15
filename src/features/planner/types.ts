@@ -8,4 +8,13 @@ export type PlannedBlock = {
   startedAt: string
   finishedAt: string
   taskId?: string
+  activityId?: string
+  recurrenceSeriesId?: string
+  recurrence?: {
+    frequency: 'daily' | 'weekdays'
+    weekdays?: number[]
+    endsOn: string
+  }
+  occurrenceDate?: string
+  detachedFromSeries?: boolean
 }

@@ -17,7 +17,7 @@ describe('Iza timer and navigation', () => {
     vi.unstubAllGlobals()
   })
 
-  it('starts, restores, and finishes a session into History', () => {
+  it('starts, restores, and finishes a session into History', async () => {
     const first = render(<App />)
     fireEvent.click(screen.getByRole('button', { name: 'Study' }))
     fireEvent.click(screen.getByRole('button', { name: 'Start Study session' }))
@@ -31,7 +31,8 @@ describe('Iza timer and navigation', () => {
     expect(screen.getByText(/Live flowtime/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Finish session' }))
     expect(screen.getByRole('form', { name: 'Complete time log' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Save time log' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(100) })
 
     expect(screen.getByRole('heading', { name: 'Your time, kept gently' })).toBeInTheDocument()
     expect(screen.getAllByText('1m').length).toBeGreaterThan(0)
@@ -70,15 +71,18 @@ describe('Iza timer and navigation', () => {
     expect(screen.getByRole('button', { name: 'Pause session' })).toBeEnabled()
   })
 
-  it('lets a user correct and delete a completed session, then undo', () => {
+  it('lets a user correct and delete a completed session, then undo', async () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: 'Start Study session' }))
     act(() => vi.advanceTimersByTime(60_000))
     fireEvent.click(screen.getByRole('button', { name: 'Finish session' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Save time log' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(100) })
+    expect(screen.getByRole('button', { name: 'Edit Study time log' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Edit Study time log' }))
     fireEvent.change(screen.getByLabelText('Finished'), { target: { value: '2026-09-12T14:02' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save time log' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await act(async () => { await vi.advanceTimersByTimeAsync(100) })
     expect(screen.getAllByText('2m').length).toBeGreaterThan(0)
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit Study time log' }))

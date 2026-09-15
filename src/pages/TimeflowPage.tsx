@@ -47,10 +47,7 @@ export function TimeflowPage({ active, completed, elapsed, start, pause, resume,
     else setGoal(minutes)
   }
 
-  const selectGroup = (nextGroup: ActivityGroup) => {
-    setGroup(nextGroup)
-    setSelected(activityGroups[nextGroup][0])
-  }
+  const selectGroup = (nextGroup: ActivityGroup) => setGroup(nextGroup)
 
   const startCurrent = () => {
     if (mode === 'pomodoro') {
@@ -72,7 +69,7 @@ export function TimeflowPage({ active, completed, elapsed, start, pause, resume,
 
       <div className="today-layout">
         <div className="timer-column">
-          <h1>{effectiveMode === 'pomodoro' ? 'A tiny focus sprint ✦' : active ? 'Stay with this one thing ♡' : 'What are you working on?'}</h1>
+          <h1>{effectiveMode === 'pomodoro' ? 'A tiny focus sprint ✦' : active ? 'Stay with this one thing ♡' : `Ready for ${selected.name}?`}</h1>
 
           {effectiveMode === 'pomodoro' ? (
             <section className="pomodoro-card" aria-label="Pomodoro timer">
@@ -120,7 +117,7 @@ export function TimeflowPage({ active, completed, elapsed, start, pause, resume,
           )}
 
           <section className="vibe-picker" aria-labelledby="vibe-title">
-            <h2 id="vibe-title">Choose a vibe</h2>
+            <h2 id="vibe-title">Choose an activity</h2>
             <div>{(Object.keys(activityGroups) as ActivityGroup[]).map((name) => <button type="button" key={name} aria-pressed={group === name} onClick={() => selectGroup(name)} style={{ '--vibe': categoryColors[name] } as React.CSSProperties}>{name}</button>)}</div>
             <div className="activity-pills" aria-label={`${group} activities`}>{activityGroups[group].map((activity) => <button type="button" key={activity.id} className={selected.id === activity.id ? 'selected' : ''} onClick={() => setSelected(activity)} disabled={Boolean(active)}>{activity.name}</button>)}</div>
           </section>
@@ -128,7 +125,7 @@ export function TimeflowPage({ active, completed, elapsed, start, pause, resume,
 
         <aside className="today-side">
           <section className="quick-label-card">
-            <h2>Quick labels</h2>
+            <h2>Quick start</h2>
             <div><strong>{todaySessions[0]?.activity.name ?? selected.name}</strong>{todaySessions[0] && <time>{timeFormatter.format(new Date(todaySessions[0].startedAt))} – {timeFormatter.format(new Date(todaySessions[0].finishedAt))}</time>}</div>
             <p>{todaySessions.length ? `${formatCompactDuration(todaySessions.reduce((sum, session) => sum + sessionSeconds(session), 0))} today` : 'Ready when you are'}</p>
             <button type="button" onClick={startCurrent} disabled={Boolean(active)} aria-label={`Start ${selected.name} from quick label`}><Plus /></button>

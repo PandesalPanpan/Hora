@@ -140,9 +140,19 @@ button { touch-action: manipulation; }
 .weekly-chart > p { margin: 2px 0 7px; color: #5fae83; font-size: 9px; }
 .weekly-chart > div { height: 98px; display: grid; grid-template-columns: repeat(7, 1fr); align-items: end; gap: 8px; }
 .weekly-chart > div span { display: grid; justify-items: center; align-items: end; gap: 5px; }
-.weekly-chart > div i { width: 22px; min-height: 14px; border-radius: 11px; background: #ffd5df; }
-.weekly-chart > div span:nth-child(4) i { background: var(--hora-pink); }
+.weekly-chart > div i { width: 22px; border-radius: 11px; background: #ffd5df; }
 .weekly-chart > div small { color: var(--hora-muted); font-size: 9px; }
+.weekly-chart > div button { min-width: 44px; min-height: 96px; padding: 0; border: 0; display: grid; justify-items: center; align-items: end; gap: 5px; background: transparent; cursor: pointer; }
+.weekly-chart > div button.selected i { background: var(--hora-pink); }
+.report-week-nav { margin: 12px 0; display: flex; align-items: center; justify-content: space-between; }
+.report-week-nav button, .history-day-link { min-width: 44px; min-height: 44px; border: 2px solid var(--hora-ink); border-radius: 14px; color: var(--hora-ink); background: white; font-weight: 700; }
+.history-day-link { width: 100%; margin-top: 12px; }
+.task-view-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; }
+.task-view-switch button { min-height: 44px; border: 2px solid var(--hora-ink); border-radius: 14px; background: white; font-weight: 700; }
+.task-view-switch button.selected { color: white; background: var(--hora-pink); }
+.task-search { min-height: 44px; padding: 0 12px; border: 2px solid var(--hora-ink); border-radius: 14px; display: flex; align-items: center; gap: 8px; background: white; }
+.task-search svg { width: 18px; }
+.task-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; }
 .time-breakdown { min-height: 156px; display: grid; grid-template-columns: 114px 1fr; gap: 10px; }
 .time-breakdown h2 { grid-column: 1/-1; }
 .donut { width: 106px; height: 106px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--donut-fill)); }

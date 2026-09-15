@@ -20,7 +20,7 @@ export type AppRoute = '/today' | '/history' | '/tasks' | '/planner' | '/reports
 const routes = new Set<AppRoute>(['/today', '/history', '/tasks', '/planner', '/reports', '/settings'])
 
 function routeFromHash(): AppRoute {
-  const route = window.location.hash.slice(1) as AppRoute
+  const route = window.location.hash.slice(1).split('?')[0] as AppRoute
   return routes.has(route) ? route : '/today'
 }
 
@@ -37,9 +37,10 @@ export default function App() {
   const [route, setRoute] = useState<AppRoute>(routeFromHash)
   const [completedReview, setCompletedReview] = useState<CompletedSession | null>(null)
   const [deletedSession, setDeletedSession] = useState<CompletedSession | null>(null)
+  const [confirmation, setConfirmation] = useState('')
 
   useEffect(() => {
-    if (!routes.has(window.location.hash.slice(1) as AppRoute)) window.history.replaceState(null, '', '#/today')
+    if (!routes.has(window.location.hash.slice(1).split('?')[0] as AppRoute)) window.history.replaceState(null, '', '#/today')
     const syncRoute = () => setRoute(routeFromHash())
     window.addEventListener('hashchange', syncRoute)
     window.addEventListener('popstate', syncRoute)
@@ -103,7 +104,7 @@ export default function App() {
             {route === '/history' && <HistoryPage completed={timer.completed} onEdit={setCompletedReview} />}
             {route === '/tasks' && <TasksPage active={timer.active} onStart={timer.start} />}
             {route === '/planner' && <Planner active={timer.active} completed={timer.completed} elapsed={timer.elapsed} onFinish={timer.finish} onStart={timer.start} />}
-            {route === '/reports' && <ReportsPage completed={timer.completed} />}
+            {route === '/reports' && <ReportsPage completed={timer.completed} onOpenHistory={(date) => { window.history.pushState(null, '', `#/history?date=${date}`); setRoute('/history') }} />}
             {route === '/settings' && <SettingsPage onNavigate={navigate} />}
           </section>
         </div>
@@ -112,7 +113,8 @@ export default function App() {
           {primaryNav.map(({ route: target, label, icon: Icon }) => <button type="button" key={target} onClick={() => navigate(target)} aria-current={route === target ? 'page' : undefined} aria-label={label}><Icon /><span>{label}</span></button>)}
         </nav>
 
-        {completedReview && <CompletionSheet session={completedReview} onClose={() => setCompletedReview(null)} onDelete={(session) => { timer.deleteCompleted(session.id); setDeletedSession(session); setCompletedReview(null) }} onSave={(session, patch) => { timer.updateCompleted(session.id, patch); setCompletedReview(null); navigate('/history') }} />}
+        {completedReview && <CompletionSheet session={completedReview} onClose={() => setCompletedReview(null)} onDelete={(session) => { timer.deleteCompleted(session.id); setDeletedSession(session); setCompletedReview(null) }} onSave={async (session, patch) => { await timer.updateCompleted(session.id, patch); setCompletedReview(null); setConfirmation('Changes saved'); navigate('/history'); window.setTimeout(() => setConfirmation(''), 3000) }} />}
+        {confirmation && <div className="undo-toast" role="status"><span>{confirmation}</span></div>}
         {deletedSession && <div className="undo-toast" role="status"><span>Session deleted</span><button type="button" onClick={() => { timer.restoreCompleted(deletedSession); setDeletedSession(null) }}>Undo</button><button type="button" onClick={() => setDeletedSession(null)} aria-label="Dismiss">×</button></div>}
       </section>
     </main>

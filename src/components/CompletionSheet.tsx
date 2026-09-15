@@ -5,7 +5,7 @@ import { formatCompactDuration, sessionSeconds } from '../lib/time'
 
 type CompletionSheetProps = {
   session: CompletedSession
-  onSave: (session: CompletedSession, patch: Pick<CompletedSession, 'activity' | 'note' | 'mood' | 'startedAt' | 'finishedAt'>) => void
+  onSave: (session: CompletedSession, patch: Pick<CompletedSession, 'activity' | 'note' | 'mood' | 'startedAt' | 'finishedAt'>) => Promise<void>
   onDelete?: (session: CompletedSession) => void
   onClose?: () => void
 }
@@ -26,15 +26,24 @@ export function CompletionSheet({ session, onSave, onDelete, onClose }: Completi
   const [finishedAt, setFinishedAt] = useState(toLocalInput(session.finishedAt))
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const save = () => {
+  const save = async () => {
+    if (saving) return
     const start = new Date(startedAt)
     const finish = new Date(finishedAt)
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(finish.getTime()) || finish <= start) {
       setError('Finish time must be after the start time.')
       return
     }
-    onSave(session, { activity, note: note.trim(), mood, startedAt: start.toISOString(), finishedAt: finish.toISOString() })
+    setError('')
+    setSaving(true)
+    try {
+      await onSave(session, { activity, note: note.trim(), mood, startedAt: start.toISOString(), finishedAt: finish.toISOString() })
+    } catch {
+      setError('Changes could not be saved on this device. Try again.')
+      setSaving(false)
+    }
   }
 
   return (
@@ -46,7 +55,7 @@ export function CompletionSheet({ session, onSave, onDelete, onClose }: Completi
         <label className="note-field"><span>Optional note</span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="What did you get done?" /></label>
         <fieldset><legend>Correct the time</legend><div className="datetime-fields"><label>Started<input type="datetime-local" value={startedAt} onChange={(event) => setStartedAt(event.target.value)} /></label><label>Finished<input type="datetime-local" value={finishedAt} onChange={(event) => setFinishedAt(event.target.value)} /></label></div>{error && <p className="form-error" role="alert">{error}</p>}</fieldset>
         <fieldset><legend>How did it feel?</legend><div className="choice-row moods">{(['calm', 'focused', 'tired'] as const).map((choice) => <button type="button" key={choice} className={mood === choice ? 'selected' : ''} onClick={() => setMood(choice)}>{choice === 'calm' ? '☁' : choice === 'focused' ? '✦' : '☕'} {choice}</button>)}</div></fieldset>
-        <button className="save-log" type="submit">Save time log</button>
+        <button className="save-log" type="submit" disabled={saving}>{saving ? 'Saving changes…' : 'Save changes'}</button>
         {onDelete && (!confirmDelete ? <button className="delete-log" type="button" onClick={() => setConfirmDelete(true)}>Delete this session</button> : <div className="confirm-delete"><span>Delete this session?</span><button type="button" onClick={() => setConfirmDelete(false)}>Keep it</button><button type="button" onClick={() => onDelete(session)}>Delete</button></div>)}
       </form>
     </div>

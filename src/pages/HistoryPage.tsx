@@ -5,7 +5,7 @@ import { formatCompactDuration, isSameLocalDay, sessionSeconds } from '../lib/ti
 const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
 
 export function HistoryPage({ completed, onEdit }: { completed: CompletedSession[]; onEdit: (session: CompletedSession) => void }) {
-  const [selectedDate, setSelectedDate] = useState(() => new Date())
+  const [selectedDate, setSelectedDate] = useState(() => { const value = new URLSearchParams(window.location.hash.split('?')[1]).get('date'); return value ? new Date(`${value}T12:00:00`) : new Date() })
   const selectedIsToday = isSameLocalDay(selectedDate.toISOString(), new Date())
   const today = useMemo(() => completed.filter((session) => isSameLocalDay(session.startedAt, selectedDate)), [completed, selectedDate])
   const total = today.reduce((sum, session) => sum + sessionSeconds(session), 0)

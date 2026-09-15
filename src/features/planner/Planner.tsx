@@ -14,6 +14,7 @@ import type { PlannedBlock, PlannerCategory } from './types'
 import { sessionSeconds } from '../../lib/time'
 import { db, legacyKeys, migrateLegacyLocalStorage } from '../../lib/db'
 import './Planner.css'
+import { expandRecurringBlock } from './recurrence'
 
 type PlannerProps = {
   active: ActiveSession | null
@@ -42,6 +43,9 @@ type DraftBlock = {
   category: PlannerCategory
   startTime: string
   endTime: string
+  repeat: 'none' | 'daily' | 'weekdays'
+  weekdays: number[]
+  endsOn: string
 }
 
 const PLANNER_KEY = legacyKeys.PLANNER_KEY
@@ -103,6 +107,9 @@ function draftFor(date: Date, hour = 9): DraftBlock {
     category: 'Focus',
     startTime: `${pad(hour)}:00`,
     endTime,
+    repeat: 'none',
+    weekdays: [1, 2, 3, 4, 5],
+    endsOn: dateKey(addDays(date, 7)),
   }
 }
 
@@ -139,7 +146,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
   }, [selectedDate, view])
 
   const events = useMemo<CalendarEvent[]>(() => {
-    const plannedEvents = planned.map((block) => ({
+    const plannedEvents = planned.flatMap(expandRecurringBlock).map((block) => ({
       id: block.id,
       kind: 'planned' as const,
       title: block.title,
@@ -207,6 +214,8 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
       color: categories[draft.category],
       startedAt: start.toISOString(),
       finishedAt: end.toISOString(),
+      recurrenceSeriesId: draft.repeat === 'none' ? undefined : crypto.randomUUID(),
+      recurrence: draft.repeat === 'none' ? undefined : { frequency: draft.repeat === 'daily' ? 'daily' : 'weekdays', weekdays: draft.repeat === 'weekdays' ? draft.weekdays : undefined, endsOn: draft.endsOn },
     }
     const next = [...planned, block]
     localStorage.setItem(PLANNER_KEY, JSON.stringify(next))
@@ -386,6 +395,9 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
             <label>What are you planning?<input autoFocus value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="e.g. Review biology notes" /></label>
             <label>Category<select value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as PlannerCategory })}>{Object.keys(categories).map((category) => <option key={category}>{category}</option>)}</select></label>
             <div className="time-fields"><label>Starts<input type="time" value={draft.startTime} onChange={(event) => setDraft({ ...draft, startTime: event.target.value })} /></label><label>Ends<input type="time" value={draft.endTime} onChange={(event) => setDraft({ ...draft, endTime: event.target.value })} /></label></div>
+            <label>Repeat<select value={draft.repeat} onChange={(event) => setDraft({ ...draft, repeat: event.target.value as DraftBlock['repeat'] })}><option value="none">Does not repeat</option><option value="daily">Every day</option><option value="weekdays">Selected weekdays</option></select></label>
+            {draft.repeat === 'weekdays' && <fieldset className="weekday-picker"><legend>Repeat on</legend>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, day) => <button type="button" key={day} aria-pressed={draft.weekdays.includes(day)} onClick={() => setDraft({ ...draft, weekdays: draft.weekdays.includes(day) ? draft.weekdays.filter((item) => item !== day) : [...draft.weekdays, day] })}>{label}</button>)}</fieldset>}
+            {draft.repeat !== 'none' && <label>Ends on<input required type="date" min={draft.date} value={draft.endsOn} onChange={(event) => setDraft({ ...draft, endsOn: event.target.value })} /></label>}
             <div className="popover-actions"><button type="submit">Save as planned</button><button type="button" disabled={Boolean(active) || !draft.title.trim()} onClick={startViaTimeflow}><TimerReset /> Start via Timeflow</button></div>
           </form>
         </div>
