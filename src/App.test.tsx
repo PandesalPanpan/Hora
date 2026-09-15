@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
-describe('Iza timer and Hora navigation', () => {
+describe('Iza timer and navigation', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-09-12T06:00:00.000Z'))
@@ -70,19 +70,41 @@ describe('Iza timer and Hora navigation', () => {
     expect(screen.getByRole('button', { name: 'Pause session' })).toBeEnabled()
   })
 
-  it('opens the Pomodoro presentation and keeps Tasks reachable from Me', () => {
+  it('lets a user correct and delete a completed session, then undo', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Start Study session' }))
+    act(() => vi.advanceTimersByTime(60_000))
+    fireEvent.click(screen.getByRole('button', { name: 'Finish session' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save time log' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Study time log' }))
+    fireEvent.change(screen.getByLabelText('Finished'), { target: { value: '2026-09-12T14:02' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save time log' }))
+    expect(screen.getAllByText('2m').length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Study time log' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete this session' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(screen.getByText('Session deleted')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(screen.getByRole('button', { name: 'Edit Study time log' })).toBeInTheDocument()
+  })
+
+  it('starts an editable Pomodoro and advances to a break without auto-stopping', () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: 'Pomodoro' }))
     expect(screen.getByLabelText('Pomodoro timer')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Me' }))
-    fireEvent.click(screen.getByRole('button', { name: /Open tasks/i }))
-    expect(screen.getByPlaceholderText('Add a task')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Focus minutes'), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Start Study Pomodoro' }))
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.getByRole('button', { name: 'Keep focusing' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Start break' }))
+    expect(screen.getByText(/Break · 1 of 4/i)).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('iza.active-session.v1') ?? '{}')).toMatchObject({ activity: { name: 'Break' }, pomodoro: { phase: 'break', round: 1 } })
   })
 
   it('drills from the week into a day and creates a planned block', () => {
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'Me' }))
-    fireEvent.click(screen.getByRole('button', { name: /Open planner/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Planner' }))
     fireEvent.click(screen.getByRole('button', { name: /Open Saturday, September 12, 2026/ }))
     expect(screen.getByRole('heading', { name: 'September 12, 2026' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
@@ -93,21 +115,21 @@ describe('Iza timer and Hora navigation', () => {
 
   it('can start an immediate Timeflow from the planner', () => {
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'Me' }))
-    fireEvent.click(screen.getByRole('button', { name: /Open planner/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Planner' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
     fireEvent.change(screen.getByLabelText('What are you planning?'), { target: { value: 'Essay outline' } })
     fireEvent.click(screen.getByRole('button', { name: 'Start via Timeflow' }))
     expect(screen.getByRole('button', { name: /^Essay outline Timeflow Live/ })).toBeInTheDocument()
   })
 
-  it('uses URL-backed navigation for History and Stats', () => {
+  it('uses URL-backed navigation for Planner and Reports', () => {
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'History' }))
-    expect(window.location.hash).toBe('#/history')
-    fireEvent.click(screen.getByRole('button', { name: 'Stats' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Planner' }))
+    expect(window.location.hash).toBe('#/planner')
+    fireEvent.click(screen.getByRole('button', { name: 'Reports' }))
     expect(window.location.hash).toBe('#/reports')
-    expect(screen.getByRole('heading', { name: 'Little wins add up ✦' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Where your time went' })).toBeInTheDocument()
+    expect(screen.queryByText(/12%|rhythm/i)).not.toBeInTheDocument()
   })
 
   it('canonicalizes an unknown URL route to Today', () => {
@@ -119,8 +141,7 @@ describe('Iza timer and Hora navigation', () => {
 
   it('defaults an 11 PM quick-add block to the end of the day', () => {
     const { container } = render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'Me' }))
-    fireEvent.click(screen.getByRole('button', { name: /Open planner/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Planner' }))
     const dayColumn = container.querySelector('.day-column')
     expect(dayColumn).not.toBeNull()
     fireEvent.click(dayColumn as Element, { clientY: 23 * 68 + 1 })

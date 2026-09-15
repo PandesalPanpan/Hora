@@ -12,6 +12,17 @@ export type ActiveSession = {
   status?: 'running' | 'paused' | 'completed'
   pausedAt?: string | null
   pausedSeconds?: number
+  taskId?: string
+  plannedBlockId?: string
+  timerMode?: 'flowtime' | 'pomodoro'
+  targetAcknowledged?: boolean
+  pomodoro?: {
+    phase: 'focus' | 'break'
+    round: number
+    focusMinutes: number
+    breakMinutes: number
+    focusActivity: Activity
+  }
 }
 
 export type CompletedSession = ActiveSession & {

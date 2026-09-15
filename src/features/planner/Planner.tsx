@@ -9,8 +9,10 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ActiveSession, Activity, CompletedSession } from '../timer/types'
+import type { TimerStartOptions } from '../timer/useTimer'
 import type { PlannedBlock, PlannerCategory } from './types'
 import { sessionSeconds } from '../../lib/time'
+import { db, legacyKeys, migrateLegacyLocalStorage } from '../../lib/db'
 import './Planner.css'
 
 type PlannerProps = {
@@ -18,7 +20,7 @@ type PlannerProps = {
   completed: CompletedSession[]
   elapsed: number
   onFinish: () => void
-  onStart: (activity: Activity) => void
+  onStart: (activity: Activity, targetMinutes?: number | null, options?: TimerStartOptions) => void
 }
 
 type CalendarEvent = {
@@ -31,6 +33,7 @@ type CalendarEvent = {
   end: Date
   plannedMinutes?: number
   actualMinutes?: number
+  plannedBlockId?: string
 }
 
 type DraftBlock = {
@@ -41,7 +44,7 @@ type DraftBlock = {
   endTime: string
 }
 
-const PLANNER_KEY = 'iza.planned-blocks.v1'
+const PLANNER_KEY = legacyKeys.PLANNER_KEY
 const HOUR_HEIGHT = 68
 const categories: Record<PlannerCategory, string> = {
   Focus: '#d92f6f',
@@ -117,6 +120,14 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    let cancelled = false
+    void migrateLegacyLocalStorage().then(() => db.plannedBlocks.orderBy('startedAt').toArray()).then((blocks) => {
+      if (!cancelled) setPlanned(blocks)
+    }).catch(() => undefined)
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date()), 30_000)
     return () => window.clearInterval(interval)
   }, [])
@@ -147,6 +158,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
       start: new Date(session.startedAt),
       end: new Date(session.finishedAt),
       actualMinutes: Math.max(1, Math.round(sessionSeconds(session) / 60)),
+      plannedBlockId: session.plannedBlockId,
     }))
     const liveEvent = active ? [{
       id: active.id,
@@ -163,13 +175,8 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
 
   const linkedPlan = useMemo(() => {
     if (!inspected || inspected.kind === 'planned') return null
-    return events
-      .filter((event) => event.kind === 'planned' && sameDay(event.start, inspected.start))
-      .sort((left, right) => {
-        const leftTitle = left.title.toLowerCase() === inspected.title.toLowerCase() ? -1_000_000 : 0
-        const rightTitle = right.title.toLowerCase() === inspected.title.toLowerCase() ? -1_000_000 : 0
-        return leftTitle + Math.abs(left.start.getTime() - inspected.start.getTime()) - rightTitle - Math.abs(right.start.getTime() - inspected.start.getTime())
-      })[0] ?? null
+    if (!inspected.plannedBlockId) return null
+    return events.find((event) => event.kind === 'planned' && event.id === inspected.plannedBlockId) ?? null
   }, [events, inspected])
 
   useEffect(() => {
@@ -203,6 +210,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
     }
     const next = [...planned, block]
     localStorage.setItem(PLANNER_KEY, JSON.stringify(next))
+    void db.plannedBlocks.put(block).catch(() => undefined)
     setPlanned(next)
     setDraft(null)
   }
@@ -248,6 +256,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
       window.removeEventListener('pointerup', onPointerUp)
       setPlanned((current) => {
         localStorage.setItem(PLANNER_KEY, JSON.stringify(current))
+        void db.plannedBlocks.bulkPut(current).catch(() => undefined)
         return current
       })
     }
@@ -264,7 +273,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
     return {
       '--event-color': event.color,
       top: `${minutesSinceMidnight(event.start) / 60 * HOUR_HEIGHT}px`,
-      height: `${Math.max(38, durationMinutes(event.start, event.end) / 60 * HOUR_HEIGHT)}px`,
+      height: `${Math.max(event.kind === 'live' ? 58 : 38, durationMinutes(event.start, event.end) / 60 * HOUR_HEIGHT)}px`,
       left: overlapping ? (actual ? '50%' : '3px') : '3px',
       width: overlapping ? 'calc(50% - 5px)' : 'calc(100% - 6px)',
     } as React.CSSProperties
@@ -342,18 +351,19 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
                       </span>
                     )}
                     {dayEvents.map((event) => (
-                      <button
+                      <div
                         className={`calendar-event ${event.kind}`}
                         key={`${event.kind}-${event.id}`}
                         style={eventStyle(event, dayEvents)}
-                        type="button"
-                        onClick={() => setInspected(event)}
                       >
                         {event.kind === 'planned' && <><i className="resize-handle top" onPointerDown={(pointer) => resizePlanned(pointer, event.id, 'start')} /><i className="resize-handle bottom" onPointerDown={(pointer) => resizePlanned(pointer, event.id, 'end')} /></>}
-                        <span className="event-title">{event.kind !== 'planned' && <TimerReset aria-hidden="true" />}{event.title}</span>
-                        <span className="event-chip">{event.category}</span>
-                        {event.kind === 'live' && <strong className="live-pill">Live · {pad(Math.floor(elapsed / 3600))}:{pad(Math.floor(elapsed % 3600 / 60))}:{pad(elapsed % 60)}</strong>}
-                      </button>
+                        <button className="event-open" type="button" onClick={() => setInspected(event)}>
+                          <span className="event-title">{event.kind !== 'planned' && <TimerReset aria-hidden="true" />}{event.title}</span>
+                          <span className="event-chip">{event.category}</span>
+                          {event.kind === 'live' && <strong className="live-pill">Live · {pad(Math.floor(elapsed / 3600))}:{pad(Math.floor(elapsed % 3600 / 60))}:{pad(elapsed % 60)}</strong>}
+                        </button>
+                        {event.kind === 'live' && <button className="live-stop-inline" type="button" onClick={onFinish} aria-label={`Stop ${event.title}`}><Square fill="currentColor" /></button>}
+                      </div>
                     ))}
                   </div>
                 )
@@ -388,6 +398,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart }: Plann
             <p><Clock3 /> {inspected.start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} - {inspected.end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</p>
             <div className="comparison-row"><span>Planned<strong>{inspected.plannedMinutes ? formatDuration(inspected.plannedMinutes) : linkedPlan ? formatDuration(durationMinutes(linkedPlan.start, linkedPlan.end)) : 'No linked plan'}</strong></span><span>Actual logged<strong>{inspected.kind === 'planned' ? 'Not tracked yet' : formatDuration(inspected.actualMinutes ?? durationMinutes(inspected.start, inspected.end))}</strong></span></div>
             {inspected.kind === 'live' && <button className="stop-live-button" type="button" onClick={() => { onFinish(); setInspected(null) }}><Square fill="currentColor" /> Stop Timeflow</button>}
+            {inspected.kind === 'planned' && <button className="stop-live-button" type="button" disabled={Boolean(active)} onClick={() => { onStart({ id: `planner-${inspected.id}`, name: inspected.title, color: inspected.color }, null, { plannedBlockId: inspected.id, timerMode: 'flowtime' }); setInspected(null) }}><TimerReset /> Start this block</button>}
           </section>
         </div>
       )}

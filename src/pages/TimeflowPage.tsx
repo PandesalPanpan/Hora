@@ -3,16 +3,19 @@ import { useMemo, useState } from 'react'
 import clockMascot from '../assets/hora-clock.png'
 import { activityGroups, categoryColors, type ActivityGroup } from '../features/activities/catalog'
 import type { ActiveSession, Activity, CompletedSession } from '../features/timer/types'
+import type { TimerStartOptions } from '../features/timer/useTimer'
 import { formatCompactDuration, isSameLocalDay, sessionSeconds } from '../lib/time'
 
 type TimeflowPageProps = {
   active: ActiveSession | null
   completed: CompletedSession[]
   elapsed: number
-  start: (activity: Activity, targetMinutes?: number | null) => void
+  start: (activity: Activity, targetMinutes?: number | null, options?: TimerStartOptions) => void
   pause: () => void
   resume: () => void
   setTargetMinutes: (targetMinutes: number | null) => void
+  acknowledgeTarget: () => void
+  advancePomodoro: () => CompletedSession | undefined
   finish: () => CompletedSession | undefined
 }
 
@@ -25,16 +28,19 @@ function fullClock(totalSeconds: number) {
   return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':')
 }
 
-export function TimeflowPage({ active, completed, elapsed, start, pause, resume, setTargetMinutes, finish }: TimeflowPageProps) {
+export function TimeflowPage({ active, completed, elapsed, start, pause, resume, setTargetMinutes, acknowledgeTarget, advancePomodoro, finish }: TimeflowPageProps) {
   const [group, setGroup] = useState<ActivityGroup>('Focus')
   const [selected, setSelected] = useState<Activity>(activityGroups.Focus[0])
   const [goal, setGoal] = useState<number | null>(25)
   const [mode, setMode] = useState<'flowtime' | 'pomodoro'>('flowtime')
+  const [focusMinutes, setFocusMinutes] = useState(25)
+  const [breakMinutes, setBreakMinutes] = useState(5)
   const todaySessions = useMemo(() => completed.filter((session) => isSameLocalDay(session.startedAt)), [completed])
   const currentActivity = active?.activity ?? selected
   const currentGoal = active ? active.targetMinutes ?? null : goal
-  const goalReached = Boolean(active && currentGoal && elapsed >= currentGoal * 60)
-  const pomodoroRemaining = Math.max(0, (active?.targetMinutes ?? 25) * 60 - elapsed)
+  const effectiveMode = active?.timerMode ?? mode
+  const goalReached = Boolean(active && currentGoal && elapsed >= currentGoal * 60 && !active.targetAcknowledged)
+  const pomodoroRemaining = Math.max(0, (active?.targetMinutes ?? focusMinutes) * 60 - (active ? elapsed : 0))
 
   const chooseGoal = (minutes: number) => {
     if (active) setTargetMinutes(minutes)
@@ -46,30 +52,47 @@ export function TimeflowPage({ active, completed, elapsed, start, pause, resume,
     setSelected(activityGroups[nextGroup][0])
   }
 
-  const startCurrent = () => start(selected, mode === 'pomodoro' ? 25 : goal)
+  const startCurrent = () => {
+    if (mode === 'pomodoro') {
+      start(selected, focusMinutes, {
+        timerMode: 'pomodoro',
+        pomodoro: { phase: 'focus', round: 1, focusMinutes, breakMinutes, focusActivity: selected },
+      })
+      return
+    }
+    start(selected, goal, { timerMode: 'flowtime' })
+  }
 
   return (
     <section className="today-page">
       <div className="mode-switch" aria-label="Timer mode">
-        <button className={mode === 'flowtime' ? 'selected' : ''} type="button" aria-pressed={mode === 'flowtime'} onClick={() => setMode('flowtime')}>Flowtime</button>
-        <button className={mode === 'pomodoro' ? 'selected' : ''} type="button" aria-pressed={mode === 'pomodoro'} onClick={() => setMode('pomodoro')}>Pomodoro</button>
+        <button className={effectiveMode === 'flowtime' ? 'selected' : ''} type="button" aria-pressed={effectiveMode === 'flowtime'} onClick={() => !active && setMode('flowtime')}>Flowtime</button>
+        <button className={effectiveMode === 'pomodoro' ? 'selected' : ''} type="button" aria-pressed={effectiveMode === 'pomodoro'} onClick={() => !active && setMode('pomodoro')}>Pomodoro</button>
       </div>
 
       <div className="today-layout">
         <div className="timer-column">
-          <h1>{mode === 'pomodoro' ? 'A tiny focus sprint ✦' : active ? 'Stay with this one thing ♡' : 'What are you working on?'}</h1>
+          <h1>{effectiveMode === 'pomodoro' ? 'A tiny focus sprint ✦' : active ? 'Stay with this one thing ♡' : 'What are you working on?'}</h1>
 
-          {mode === 'pomodoro' ? (
+          {effectiveMode === 'pomodoro' ? (
             <section className="pomodoro-card" aria-label="Pomodoro timer">
-              <span className="live-kicker">Focus · 1 of 4</span>
+              <span className="live-kicker">{active?.pomodoro ? `${active.pomodoro.phase === 'focus' ? 'Focus' : 'Break'} · ${active.pomodoro.round} of 4` : 'Four gentle focus rounds'}</span>
+              {!active && <div className="pomodoro-settings"><label>Focus<input aria-label="Focus minutes" type="number" min="1" max="180" value={focusMinutes} onChange={(event) => setFocusMinutes(Math.max(1, Number(event.target.value) || 1))} /></label><label>Break<input aria-label="Break minutes" type="number" min="1" max="60" value={breakMinutes} onChange={(event) => setBreakMinutes(Math.max(1, Number(event.target.value) || 1))} /></label></div>}
               <div className="pomodoro-ring"><strong aria-label={`${pomodoroRemaining} seconds remaining`}>{String(Math.floor(pomodoroRemaining / 60)).padStart(2, '0')}:{String(pomodoroRemaining % 60).padStart(2, '0')}</strong><span>{currentActivity.name}</span></div>
-              <div className="timer-actions">
-                {!active ? <button className="primary" type="button" onClick={startCurrent} aria-label={`Start ${selected.name} session`}><Play fill="currentColor" />Start</button> : <>
-                  <button type="button" onClick={active.status === 'paused' ? resume : pause} aria-label={active.status === 'paused' ? 'Resume session' : 'Pause session'}>{active.status === 'paused' ? <Play fill="currentColor" /> : <Pause />} {active.status === 'paused' ? 'Resume' : 'Pause'}</button>
-                  <button className="primary" type="button" onClick={finish} aria-label="Finish session"><Square fill="currentColor" />End</button>
-                </>}
-              </div>
-              <small>Next: 5 min soft break</small>
+              {goalReached && active?.pomodoro ? (
+                <div className="timer-actions milestone-actions">
+                  <button type="button" onClick={acknowledgeTarget}>{active.pomodoro.phase === 'focus' ? 'Keep focusing' : 'Keep resting'}</button>
+                  <button className="primary" type="button" onClick={advancePomodoro}>{active.pomodoro.phase === 'focus' ? 'Start break' : active.pomodoro.round >= 4 ? 'Finish cycle' : 'Next focus'}</button>
+                </div>
+              ) : (
+                <div className="timer-actions">
+                  {!active ? <button className="primary" type="button" onClick={startCurrent} aria-label={`Start ${selected.name} Pomodoro`}><Play fill="currentColor" />Start focus</button> : <>
+                    <button type="button" onClick={active.status === 'paused' ? resume : pause} aria-label={active.status === 'paused' ? 'Resume session' : 'Pause session'}>{active.status === 'paused' ? <Play fill="currentColor" /> : <Pause />} {active.status === 'paused' ? 'Resume' : 'Pause'}</button>
+                    <button className="primary" type="button" onClick={finish} aria-label="Finish session"><Square fill="currentColor" />End</button>
+                  </>}
+                </div>
+              )}
+              <small>{active?.pomodoro?.phase === 'break' ? `Next: focus round ${Math.min(4, active.pomodoro.round + 1)}` : `Next: ${active?.pomodoro?.breakMinutes ?? breakMinutes} min soft break`}</small>
             </section>
           ) : active ? (
             <section className="live-timer-card" aria-label="Timer">

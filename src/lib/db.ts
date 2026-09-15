@@ -1,0 +1,92 @@
+import Dexie, { type EntityTable } from 'dexie'
+import type { PlannedBlock } from '../features/planner/types'
+import type { ActiveSession, CompletedSession } from '../features/timer/types'
+import type { Task } from '../features/tasks/types'
+
+export type StoredSession = ActiveSession & { finishedAt?: string }
+
+type MetaRecord = { key: string; value: string }
+
+class IzaDatabase extends Dexie {
+  sessions!: EntityTable<StoredSession, 'id'>
+  plannedBlocks!: EntityTable<PlannedBlock, 'id'>
+  tasks!: EntityTable<Task, 'id'>
+  meta!: EntityTable<MetaRecord, 'key'>
+
+  constructor() {
+    super('iza-time-tracker')
+    this.version(1).stores({
+      sessions: '&id,status,startedAt,finishedAt,activity.id,taskId,plannedBlockId',
+      plannedBlocks: '&id,startedAt,finishedAt,taskId',
+      tasks: '&id,completed,updatedAt',
+      meta: '&key',
+    })
+  }
+}
+
+export const db = new IzaDatabase()
+
+const ACTIVE_KEY = 'iza.active-session.v1'
+const COMPLETED_KEY = 'iza.completed-sessions.v1'
+const PLANNER_KEY = 'iza.planned-blocks.v1'
+const TASKS_KEY = 'iza.tasks.v1'
+const MIGRATION_KEY = 'local-storage-v1-migrated'
+
+function parse<T>(key: string, fallback: T): T {
+  try {
+    return JSON.parse(localStorage.getItem(key) ?? '') as T
+  } catch {
+    return fallback
+  }
+}
+
+export async function migrateLegacyLocalStorage(): Promise<void> {
+  if (await db.meta.get(MIGRATION_KEY)) return
+
+  const active = parse<ActiveSession | null>(ACTIVE_KEY, null)
+  const completed = parse<CompletedSession[]>(COMPLETED_KEY, [])
+  const planned = parse<PlannedBlock[]>(PLANNER_KEY, [])
+  const tasks = parse<Task[]>(TASKS_KEY, [])
+
+  await db.transaction('rw', db.sessions, db.plannedBlocks, db.tasks, db.meta, async () => {
+    if (active) await db.sessions.put({ ...active, status: active.status ?? 'running' })
+    if (completed.length) await db.sessions.bulkPut(completed.map((session) => ({ ...session, status: 'completed' })))
+    if (planned.length) await db.plannedBlocks.bulkPut(planned)
+    if (tasks.length) {
+      const migratedAt = new Date().toISOString()
+      await db.tasks.bulkPut(tasks.map((task) => ({ ...task, createdAt: task.createdAt ?? migratedAt, updatedAt: task.updatedAt ?? migratedAt })))
+    }
+    await db.meta.put({ key: MIGRATION_KEY, value: new Date().toISOString() })
+  })
+}
+
+export async function loadDatabaseState() {
+  await migrateLegacyLocalStorage()
+  const [active, completed, planned, tasks] = await Promise.all([
+    db.sessions.where('status').anyOf('running', 'paused').first(),
+    db.sessions.where('status').equals('completed').reverse().sortBy('startedAt'),
+    db.plannedBlocks.orderBy('startedAt').toArray(),
+    db.tasks.orderBy('updatedAt').toArray(),
+  ])
+  return {
+    active: active ?? null,
+    completed: completed as CompletedSession[],
+    planned,
+    tasks: tasks.reverse(),
+  }
+}
+
+export async function replaceDatabaseState(input: {
+  sessions: StoredSession[]
+  plannedBlocks: PlannedBlock[]
+  tasks: Task[]
+}): Promise<void> {
+  await db.transaction('rw', db.sessions, db.plannedBlocks, db.tasks, async () => {
+    await Promise.all([db.sessions.clear(), db.plannedBlocks.clear(), db.tasks.clear()])
+    if (input.sessions.length) await db.sessions.bulkPut(input.sessions)
+    if (input.plannedBlocks.length) await db.plannedBlocks.bulkPut(input.plannedBlocks)
+    if (input.tasks.length) await db.tasks.bulkPut(input.tasks)
+  })
+}
+
+export const legacyKeys = { ACTIVE_KEY, COMPLETED_KEY, PLANNER_KEY, TASKS_KEY }

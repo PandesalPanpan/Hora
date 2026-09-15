@@ -7,5 +7,5 @@ export type PlannedBlock = {
   color: string
   startedAt: string
   finishedAt: string
+  taskId?: string
 }
-

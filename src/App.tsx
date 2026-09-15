@@ -1,7 +1,7 @@
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard } from '@capacitor/keyboard'
-import { BarChart3, Bell, Clock3, History, UserRound } from 'lucide-react'
+import { BarChart3, CalendarDays, CheckSquare, Clock3, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CompletionSheet } from './components/CompletionSheet'
 import { Planner } from './features/planner/Planner'
@@ -26,9 +26,9 @@ function routeFromHash(): AppRoute {
 
 const primaryNav: Array<{ route: AppRoute; label: string; icon: typeof Clock3 }> = [
   { route: '/today', label: 'Today', icon: Clock3 },
-  { route: '/history', label: 'History', icon: History },
-  { route: '/reports', label: 'Stats', icon: BarChart3 },
-  { route: '/settings', label: 'Me', icon: UserRound },
+  { route: '/planner', label: 'Planner', icon: CalendarDays },
+  { route: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { route: '/reports', label: 'Reports', icon: BarChart3 },
 ]
 
 export default function App() {
@@ -36,6 +36,7 @@ export default function App() {
   const timer = useTimer()
   const [route, setRoute] = useState<AppRoute>(routeFromHash)
   const [completedReview, setCompletedReview] = useState<CompletedSession | null>(null)
+  const [deletedSession, setDeletedSession] = useState<CompletedSession | null>(null)
 
   useEffect(() => {
     if (!routes.has(window.location.hash.slice(1) as AppRoute)) window.history.replaceState(null, '', '#/today')
@@ -92,14 +93,14 @@ export default function App() {
           <header className="topbar">
             <button className="brand" type="button" onClick={() => navigate('/today')} aria-label="Iza home">Iza</button>
             <span className="tagline">make time feel softer</span>
-            <button className="notification-button" type="button" aria-label="Notifications"><Bell aria-hidden="true" /><span aria-hidden="true" /></button>
+            <button className="notification-button" type="button" aria-label="Open settings" onClick={() => navigate('/settings')}><UserRound aria-hidden="true" /></button>
           </header>
 
           {timer.active && route !== '/today' && <button className="active-session-dock" type="button" onClick={() => navigate('/today')}><span style={{ backgroundColor: timer.active.activity.color }}><Clock3 /></span><span><strong>{timer.active.activity.name}</strong><small>{timer.active.status === 'paused' ? 'Paused' : 'Tracking now'}</small></span><b>{formatDuration(timer.elapsed)}</b></button>}
 
           <section className="content-panel">
             {route === '/today' && <TimeflowPage {...timer} finish={finishWithReview} />}
-            {route === '/history' && <HistoryPage completed={timer.completed} />}
+            {route === '/history' && <HistoryPage completed={timer.completed} onEdit={setCompletedReview} />}
             {route === '/tasks' && <TasksPage active={timer.active} onStart={timer.start} />}
             {route === '/planner' && <Planner active={timer.active} completed={timer.completed} elapsed={timer.elapsed} onFinish={timer.finish} onStart={timer.start} />}
             {route === '/reports' && <ReportsPage completed={timer.completed} />}
@@ -111,7 +112,8 @@ export default function App() {
           {primaryNav.map(({ route: target, label, icon: Icon }) => <button type="button" key={target} onClick={() => navigate(target)} aria-current={route === target ? 'page' : undefined} aria-label={label}><Icon /><span>{label}</span></button>)}
         </nav>
 
-        {completedReview && <CompletionSheet session={completedReview} onSave={(session, patch) => { timer.updateCompleted(session.id, patch); setCompletedReview(null); navigate('/history') }} />}
+        {completedReview && <CompletionSheet session={completedReview} onClose={() => setCompletedReview(null)} onDelete={(session) => { timer.deleteCompleted(session.id); setDeletedSession(session); setCompletedReview(null) }} onSave={(session, patch) => { timer.updateCompleted(session.id, patch); setCompletedReview(null); navigate('/history') }} />}
+        {deletedSession && <div className="undo-toast" role="status"><span>Session deleted</span><button type="button" onClick={() => { timer.restoreCompleted(deletedSession); setDeletedSession(null) }}>Undo</button><button type="button" onClick={() => setDeletedSession(null)} aria-label="Dismiss">×</button></div>}
       </section>
     </main>
   )

@@ -7,7 +7,7 @@ const outputRoot = path.resolve(process.argv[2] ?? '.artifacts/mobile-repair/cur
 const baseUrl = process.argv[3] ?? 'http://127.0.0.1:5173'
 const seeded = process.argv.includes('--seeded')
 const routes = ['today', 'planner', 'tasks', 'reports', 'settings']
-const viewports = [[320, 568], [360, 800], [390, 844]]
+const viewports = [[320, 568], [360, 800], [390, 844], [1024, 768]]
 
 await mkdir(outputRoot, { recursive: true })
 
@@ -94,7 +94,7 @@ try {
       width,
       height,
       deviceScaleFactor: 1,
-      mobile: true,
+      mobile: width < 760,
       screenWidth: width,
       screenHeight: height,
     }, sessionId)
@@ -115,6 +115,11 @@ try {
         await new Promise((resolve) => setTimeout(resolve, 450))
       }
       await capture(route, route, width, height)
+      if (route === 'today') {
+        await command('Runtime.evaluate', { expression: `[...document.querySelectorAll('button')].find((button) => button.textContent?.trim() === 'Pomodoro')?.click()` }, sessionId)
+        await new Promise((resolve) => setTimeout(resolve, 200))
+        await capture(route, 'pomodoro-setup', width, height)
+      }
       if (route === 'today' && seeded) {
         await command('Runtime.evaluate', { expression: `window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })` }, sessionId)
         await new Promise((resolve) => setTimeout(resolve, 150))

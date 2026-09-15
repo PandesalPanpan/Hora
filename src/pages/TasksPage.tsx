@@ -2,10 +2,13 @@ import { Check, Circle, Play, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { IzaCharacter } from '../components/IzaCharacter'
 import type { Activity, ActiveSession } from '../features/timer/types'
+import type { TimerStartOptions } from '../features/timer/useTimer'
+import type { Task } from '../features/tasks/types'
+import { db, legacyKeys, migrateLegacyLocalStorage } from '../lib/db'
+import { useEffect } from 'react'
 
-type Task = { id: string; title: string; estimateMinutes: number; completed: boolean }
-type TasksPageProps = { active: ActiveSession | null; onStart: (activity: Activity, targetMinutes?: number | null) => void }
-const TASKS_KEY = 'iza.tasks.v1'
+type TasksPageProps = { active: ActiveSession | null; onStart: (activity: Activity, targetMinutes?: number | null, options?: TimerStartOptions) => void }
+const TASKS_KEY = legacyKeys.TASKS_KEY
 
 function loadTasks(): Task[] {
   try { return JSON.parse(localStorage.getItem(TASKS_KEY) ?? '[]') as Task[] } catch { return [] }
@@ -16,10 +19,23 @@ export function TasksPage({ active, onStart }: TasksPageProps) {
   const [title, setTitle] = useState('')
   const openCount = useMemo(() => tasks.filter((task) => !task.completed).length, [tasks])
 
-  const persist = (next: Task[]) => { localStorage.setItem(TASKS_KEY, JSON.stringify(next)); setTasks(next) }
+  useEffect(() => {
+    let cancelled = false
+    void migrateLegacyLocalStorage().then(() => db.tasks.toArray()).then((stored) => {
+      if (!cancelled) setTasks(stored.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '')))
+    }).catch(() => undefined)
+    return () => { cancelled = true }
+  }, [])
+
+  const persist = (next: Task[]) => {
+    localStorage.setItem(TASKS_KEY, JSON.stringify(next))
+    setTasks(next)
+    void db.tasks.bulkPut(next).catch(() => undefined)
+  }
   const addTask = () => {
     if (!title.trim()) return
-    persist([...tasks, { id: crypto.randomUUID(), title: title.trim(), estimateMinutes: 25, completed: false }])
+    const now = new Date().toISOString()
+    persist([...tasks, { id: crypto.randomUUID(), title: title.trim(), estimateMinutes: 25, completed: false, createdAt: now, updatedAt: now }])
     setTitle('')
   }
 
@@ -38,7 +54,7 @@ export function TasksPage({ active, onStart }: TasksPageProps) {
             <article className={task.completed ? 'task-row completed' : 'task-row'} key={task.id}>
               <button type="button" className="task-check" onClick={() => persist(tasks.map((item) => item.id === task.id ? { ...item, completed: !item.completed } : item))} aria-label={`${task.completed ? 'Reopen' : 'Complete'} ${task.title}`}>{task.completed ? <Check /> : <Circle />}</button>
               <div><strong>{task.title}</strong><span>{task.estimateMinutes} minute focus target</span></div>
-              <button type="button" className="task-start" disabled={Boolean(active) || task.completed} onClick={() => onStart({ id: `task-${task.id}`, name: task.title, color: '#d92f6f' }, task.estimateMinutes)} aria-label={`Start ${task.title}`}><Play fill="currentColor" /></button>
+              <button type="button" className="task-start" disabled={Boolean(active) || task.completed} onClick={() => onStart({ id: `task-${task.id}`, name: task.title, color: '#d92f6f' }, task.estimateMinutes, { taskId: task.id, timerMode: 'flowtime' })} aria-label={`Start ${task.title}`}><Play fill="currentColor" /></button>
             </article>
           ))}
         </div>
