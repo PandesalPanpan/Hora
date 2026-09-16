@@ -1,8 +1,13 @@
-.iza-character { --body-size: clamp(10.25rem, 48vw, 12.75rem); --body-radius: clamp(5.125rem, 24vw, 6.375rem); min-width: 0; height: 100%; position: relative; overflow: hidden; }
+.iza-character { --brown: #8d5146; --cream: #fff9f6; --rose: #ffdde3; --body-size: clamp(10.25rem, 48vw, 12.75rem); --body-radius: clamp(5.125rem, 24vw, 6.375rem); min-width: 0; height: 100%; position: relative; overflow: hidden; }
 .iza-character .character-body { width: var(--body-size); aspect-ratio: 1; padding-top: clamp(3rem, 13vw, 3.45rem); position: absolute; z-index: 3; left: 50%; top: .9rem; border-radius: 50%; transform: translateX(-50%); text-align: center; background: var(--cream); }
-.iza-character .ear { width: 3rem; height: 3rem; position: absolute; z-index: 1; top: 1.3rem; border-radius: 50%; background: var(--rose); }
-.iza-character .ear-left { left: calc(50% - var(--body-radius) - .2rem); }
-.iza-character .ear-right { right: calc(50% - var(--body-radius) - .2rem); }
+.iza-character .ear { width: 2.65rem; height: 3.25rem; position: absolute; z-index: 2; top: .45rem; background: var(--brown); }
+.iza-character .ear::after { content: ''; position: absolute; inset: .28rem .32rem .35rem; background: var(--cream); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.iza-character .ear-left { clip-path: polygon(20% 0, 100% 100%, 0 100%); }
+.iza-character .ear-left::after { clip-path: polygon(30% 0, 100% 100%, 0 100%); }
+.iza-character .ear-right { clip-path: polygon(80% 0, 100% 100%, 0 100%); }
+.iza-character .ear-right::after { clip-path: polygon(70% 0, 100% 100%, 0 100%); }
+.iza-character .ear-left { left: calc(50% - var(--body-radius) + .45rem); }
+.iza-character .ear-right { right: calc(50% - var(--body-radius) + .45rem); }
 .iza-character .arm { width: 1.45rem; height: 3.3rem; position: absolute; z-index: 2; top: 7.75rem; border-radius: 50%; background: var(--brown); }
 .iza-character .arm-left { left: calc(50% - var(--body-radius) + .05rem); transform: rotate(5deg); }
 .iza-character .arm-right { right: calc(50% - var(--body-radius) + .05rem); transform: rotate(-5deg); }
@@ -27,9 +32,10 @@
 .iza-character.compact { --body-size: 5.8rem; --body-radius: 2.9rem; width: 7.4rem; height: 7.4rem; flex: none; }
 .iza-character.compact.encouraging { overflow: visible; }
 .iza-character.compact .character-body { width: 5.8rem; padding-top: 1.7rem; top: .65rem; }
-.iza-character.compact .ear { width: 1.75rem; height: 1.75rem; top: .75rem; }
-.iza-character.compact .ear-left { left: calc(50% - var(--body-radius) - .15rem); }
-.iza-character.compact .ear-right { right: calc(50% - var(--body-radius) - .15rem); }
+.iza-character.compact .ear { width: 1.55rem; height: 1.95rem; top: .3rem; }
+.iza-character.compact .ear::after { inset: .17rem .19rem .22rem; }
+.iza-character.compact .ear-left { left: calc(50% - var(--body-radius) + .27rem); }
+.iza-character.compact .ear-right { right: calc(50% - var(--body-radius) + .27rem); }
 .iza-character.compact .arm { width: .7rem; height: 1.65rem; top: 3.75rem; }
 .iza-character.compact .arm-left { left: calc(50% - var(--body-radius) + .08rem); }
 .iza-character.compact .arm-right { right: calc(50% - var(--body-radius) + .08rem); }
@@ -50,7 +56,8 @@
   .iza-character .character-foot { width: 3.55rem; height: 3.55rem; }
   .iza-character.compact { --body-size: 5rem; --body-radius: 2.5rem; width: 6.4rem; height: 6.4rem; }
   .iza-character.compact .character-body { width: 5rem; padding-top: 1.5rem; top: .55rem; }
-  .iza-character.compact .ear { width: 1.5rem; height: 1.5rem; top: .65rem; }
+  .iza-character.compact .ear { width: 1.35rem; height: 1.7rem; top: .25rem; }
+  .iza-character.compact .ear::after { inset: .15rem .16rem .19rem; }
   .iza-character.compact .arm { width: .62rem; height: 1.45rem; top: 3.3rem; }
   .iza-character.compact .face { width: 2.8rem; }
 }

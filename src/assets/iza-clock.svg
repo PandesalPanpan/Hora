@@ -2,7 +2,7 @@
   <title id="title">Iza clock character</title>
   <desc id="description">A friendly handmade clock with rosy cheeks and cat-ear alarm bells.</desc>
   <ellipse cx="55" cy="99" rx="32" ry="5" fill="#efd4cc"/>
-  <path d="M20 24 29 8l9 17M72 24 80 7l11 16" fill="#f7ced8" stroke="#805149" stroke-width="4" stroke-linejoin="miter"/>
+  <path d="M20 38 25 9l15 29M70 38 85 9l10 29" fill="#f7ced8" stroke="#805149" stroke-width="4" stroke-linejoin="round"/>
   <circle cx="55" cy="55" r="36" fill="#fffaf8" stroke="#805149" stroke-width="4"/>
   <circle cx="42" cy="53" r="3.2" fill="#805149"/>
   <circle cx="76" cy="53" r="3.2" fill="#805149"/>
