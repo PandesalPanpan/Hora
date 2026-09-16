@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
@@ -35,6 +35,8 @@ describe('Iza timer and navigation', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(100) })
 
     expect(screen.getByRole('heading', { name: 'Your time, kept gently' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reports' })).toHaveAttribute('aria-current', 'page')
+    expect(within(screen.getByLabelText('Recent dates')).getAllByRole('button')).toHaveLength(7)
     expect(screen.getAllByText('1m').length).toBeGreaterThan(0)
     restored.unmount()
   })
@@ -98,15 +100,30 @@ describe('Iza timer and navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pomodoro' }))
     expect(screen.getByLabelText('Pomodoro timer')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Focus minutes'), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText('Focus rounds'), { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Start Study Pomodoro' }))
     act(() => vi.advanceTimersByTime(60_000))
     expect(screen.getByRole('button', { name: 'Keep focusing' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Start break' }))
-    expect(screen.getByText(/Break · 1 of 4/i)).toBeInTheDocument()
-    expect(JSON.parse(localStorage.getItem('iza.active-session.v1') ?? '{}')).toMatchObject({ activity: { name: 'Break' }, pomodoro: { phase: 'break', round: 1 } })
+    expect(screen.getByText(/Break · 1 of 2/i)).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('iza.active-session.v1') ?? '{}')).toMatchObject({ activity: { name: 'Break' }, pomodoro: { phase: 'break', round: 1, totalRounds: 2 } })
   })
 
-  it('drills from the week into a day and creates a planned block', () => {
+  it('keeps a paused Pomodoro break frozen while navigating', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pomodoro' }))
+    fireEvent.change(screen.getByLabelText('Focus minutes'), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Start Study Pomodoro' }))
+    act(() => vi.advanceTimersByTime(60_000))
+    fireEvent.click(screen.getByRole('button', { name: 'Start break' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pause break' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reports' }))
+    act(() => vi.advanceTimersByTime(120_000))
+    expect(screen.getByText('Paused')).toBeInTheDocument()
+    expect(screen.getByText('00:00')).toBeInTheDocument()
+  })
+
+  it('drills from the week into a day and creates a planned block', async () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: 'Planner' }))
     fireEvent.click(screen.getByRole('button', { name: /Open Saturday, September 12, 2026/ }))
@@ -114,7 +131,8 @@ describe('Iza timer and navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
     fireEvent.change(screen.getByLabelText('What are you planning?'), { target: { value: 'Review biology notes' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save as planned' }))
-    expect(screen.getByRole('button', { name: 'Review biology notes Focus' })).toBeInTheDocument()
+    await act(async () => { await vi.advanceTimersByTimeAsync(100) })
+    expect(screen.getByRole('button', { name: 'Review biology notes Planned' })).toBeInTheDocument()
   })
 
   it('can start an immediate Timeflow from the planner', () => {
@@ -123,7 +141,7 @@ describe('Iza timer and navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
     fireEvent.change(screen.getByLabelText('What are you planning?'), { target: { value: 'Essay outline' } })
     fireEvent.click(screen.getByRole('button', { name: 'Start via Timeflow' }))
-    expect(screen.getByRole('button', { name: /^Essay outline Timeflow Live/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Essay outline Live Live/ })).toBeInTheDocument()
   })
 
   it('uses URL-backed navigation for Planner and Reports', () => {
@@ -134,6 +152,17 @@ describe('Iza timer and navigation', () => {
     expect(window.location.hash).toBe('#/reports')
     expect(screen.getByRole('heading', { name: 'Where your time went' })).toBeInTheDocument()
     expect(screen.queryByText(/12%|rhythm/i)).not.toBeInTheDocument()
+  })
+
+  it('opens a URL-backed version history from Your gentle corner', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
+    fireEvent.click(screen.getByRole('button', { name: /What’s new/i }))
+    expect(window.location.hash).toBe('#/changelog')
+    expect(screen.getByRole('heading', { name: 'What’s new' })).toBeInTheDocument()
+    expect(screen.getByText('Latest · v0.1.0')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Back to your gentle corner' }))
+    expect(window.location.hash).toBe('#/settings')
   })
 
   it('canonicalizes an unknown URL route to Today', () => {

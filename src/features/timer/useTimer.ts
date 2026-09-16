@@ -10,6 +10,7 @@ export type TimerStartOptions = {
   plannedBlockId?: string
   timerMode?: 'flowtime' | 'pomodoro'
   pomodoro?: ActiveSession['pomodoro']
+  note?: string
 }
 
 export function useTimer() {
@@ -42,9 +43,12 @@ export function useTimer() {
     const refresh = () => setNow(Date.now())
     document.addEventListener('visibilitychange', refresh)
     window.addEventListener('focus', refresh)
+    const reload = () => { void localStore.hydrate().then(state => setCompleted(state.completed)) }
+    window.addEventListener('iza-data-changed', reload)
     return () => {
       document.removeEventListener('visibilitychange', refresh)
       window.removeEventListener('focus', refresh)
+      window.removeEventListener('iza-data-changed', reload)
     }
   }, [])
 
@@ -95,6 +99,13 @@ export function useTimer() {
     localStore.setActive(session)
     setActive(session)
     void scheduleMilestoneNotification(session, activeSessionSeconds(session))
+  }, [active])
+
+  const setNote = useCallback((note: string) => {
+    if (!active) return
+    const session: ActiveSession = { ...active, note }
+    localStore.setActive(session)
+    setActive(session)
   }, [active])
 
   const acknowledgeTarget = useCallback(() => {
@@ -156,7 +167,7 @@ export function useTimer() {
     const current = active.pomodoro
     const nextPhase = current.phase === 'focus' ? 'break' : 'focus'
     const nextRound = current.phase === 'break' ? current.round + 1 : current.round
-    const cycleComplete = current.phase === 'break' && current.round >= 4
+    const cycleComplete = current.phase === 'break' && current.round >= (current.totalRounds ?? 4)
     const sessions = localStore.addCompleted(completedSession)
     void cancelMilestoneNotification(active.id)
     setCompleted(sessions)
@@ -193,6 +204,7 @@ export function useTimer() {
     pause,
     resume,
     setTargetMinutes,
+    setNote,
     acknowledgeTarget,
     finish,
     updateCompleted,

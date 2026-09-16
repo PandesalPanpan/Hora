@@ -1,3 +1,4 @@
+import { useSheetNavigation } from './components/useSheetNavigation'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard } from '@capacitor/keyboard'
@@ -9,15 +10,16 @@ import type { CompletedSession } from './features/timer/types'
 import { useTimer } from './features/timer/useTimer'
 import { formatDuration } from './lib/time'
 import { HistoryPage } from './pages/HistoryPage'
+import { ChangelogPage } from './pages/ChangelogPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TasksPage } from './pages/TasksPage'
 import { TimeflowPage } from './pages/TimeflowPage'
 import './App.css'
 
-export type AppRoute = '/today' | '/history' | '/tasks' | '/planner' | '/reports' | '/settings'
+export type AppRoute = '/today' | '/history' | '/tasks' | '/planner' | '/reports' | '/settings' | '/changelog'
 
-const routes = new Set<AppRoute>(['/today', '/history', '/tasks', '/planner', '/reports', '/settings'])
+const routes = new Set<AppRoute>(['/today', '/history', '/tasks', '/planner', '/reports', '/settings', '/changelog'])
 
 function routeFromHash(): AppRoute {
   const route = window.location.hash.slice(1).split('?')[0] as AppRoute
@@ -32,8 +34,10 @@ const primaryNav: Array<{ route: AppRoute; label: string; icon: typeof Clock3 }>
 ]
 
 export default function App() {
+  useSheetNavigation()
   const appCanvasRef = useRef<HTMLElement>(null)
   const timer = useTimer()
+  const [routeKey, setRouteKey] = useState(window.location.hash)
   const [route, setRoute] = useState<AppRoute>(routeFromHash)
   const [completedReview, setCompletedReview] = useState<CompletedSession | null>(null)
   const [deletedSession, setDeletedSession] = useState<CompletedSession | null>(null)
@@ -41,7 +45,7 @@ export default function App() {
 
   useEffect(() => {
     if (!routes.has(window.location.hash.slice(1).split('?')[0] as AppRoute)) window.history.replaceState(null, '', '#/today')
-    const syncRoute = () => setRoute(routeFromHash())
+    const syncRoute = () => { setRoute(routeFromHash()); setRouteKey(window.location.hash) }
     window.addEventListener('hashchange', syncRoute)
     window.addEventListener('popstate', syncRoute)
     return () => { window.removeEventListener('hashchange', syncRoute); window.removeEventListener('popstate', syncRoute) }
@@ -60,14 +64,14 @@ export default function App() {
     if (!Capacitor.isNativePlatform()) return
     let disposed = false
     let handle: { remove: () => Promise<void> } | undefined
-    void CapacitorApp.addListener('backButton', () => route !== '/today' ? window.history.back() : void CapacitorApp.exitApp()).then((listener) => disposed ? void listener.remove() : handle = listener)
+    void CapacitorApp.addListener('backButton', () => { if (document.querySelector('.completion-sheet, .quick-add-popover, .event-inspector')) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); else if (route !== '/today') window.history.back(); else void CapacitorApp.exitApp() }).then((listener) => disposed ? void listener.remove() : handle = listener)
     return () => { disposed = true; if (handle) void handle.remove() }
   }, [route])
 
   useEffect(() => {
     document.documentElement.scrollTop = 0
     if (appCanvasRef.current) appCanvasRef.current.scrollTop = 0
-    const names: Record<AppRoute, string> = { '/today': 'Today', '/history': 'History', '/tasks': 'Tasks', '/planner': 'Planner', '/reports': 'Stats', '/settings': 'Me' }
+    const names: Record<AppRoute, string> = { '/today': 'Today', '/history': 'History', '/tasks': 'Tasks', '/planner': 'Planner', '/reports': 'Stats', '/settings': 'Me', '/changelog': 'What’s new' }
     document.title = `${names[route]} · Iza`
   }, [route])
 
@@ -87,7 +91,7 @@ export default function App() {
       <section className="app-shell" id="top">
         <nav className="desktop-rail" aria-label="Primary navigation">
           <button className="rail-mark" type="button" onClick={() => navigate('/today')} aria-label="Iza home">I</button>
-          {primaryNav.map(({ route: target, label, icon: Icon }) => <button type="button" key={target} aria-label={`${label} desktop`} onClick={() => navigate(target)} aria-current={route === target ? 'page' : undefined}><Icon /><span>{label}</span></button>)}
+          {primaryNav.map(({ route: target, label, icon: Icon }) => <button type="button" key={target} aria-label={`${label} desktop`} onClick={() => navigate(target)} aria-current={route === target || route === '/history' && target === '/reports' ? 'page' : undefined}><Icon /><span>{label}</span></button>)}
         </nav>
 
         <div className="app-main">
@@ -100,20 +104,21 @@ export default function App() {
           {timer.active && route !== '/today' && <button className="active-session-dock" type="button" onClick={() => navigate('/today')}><span style={{ backgroundColor: timer.active.activity.color }}><Clock3 /></span><span><strong>{timer.active.activity.name}</strong><small>{timer.active.status === 'paused' ? 'Paused' : 'Tracking now'}</small></span><b>{formatDuration(timer.elapsed)}</b></button>}
 
           <section className="content-panel">
-            {route === '/today' && <TimeflowPage {...timer} finish={finishWithReview} />}
-            {route === '/history' && <HistoryPage completed={timer.completed} onEdit={setCompletedReview} />}
+            {route === '/today' && <TimeflowPage onReview={setCompletedReview} {...timer} finish={finishWithReview} />}
+            {route === '/history' && <HistoryPage key={routeKey} completed={timer.completed} onEdit={setCompletedReview} onOpenReports={() => navigate('/reports')} />}
             {route === '/tasks' && <TasksPage active={timer.active} onStart={timer.start} />}
-            {route === '/planner' && <Planner active={timer.active} completed={timer.completed} elapsed={timer.elapsed} onFinish={timer.finish} onStart={timer.start} />}
+            {route === '/planner' && <Planner key={routeKey} active={timer.active} completed={timer.completed} elapsed={timer.elapsed} onFinish={timer.finish} onStart={timer.start} onReview={setCompletedReview} />}
             {route === '/reports' && <ReportsPage completed={timer.completed} onOpenHistory={(date) => { window.history.pushState(null, '', `#/history?date=${date}`); setRoute('/history') }} />}
             {route === '/settings' && <SettingsPage onNavigate={navigate} />}
+            {route === '/changelog' && <ChangelogPage onBack={() => navigate('/settings')} />}
           </section>
         </div>
 
         <nav className="bottom-nav" aria-label="Primary navigation">
-          {primaryNav.map(({ route: target, label, icon: Icon }) => <button type="button" key={target} onClick={() => navigate(target)} aria-current={route === target ? 'page' : undefined} aria-label={label}><Icon /><span>{label}</span></button>)}
+          {primaryNav.map(({ route: target, label, icon: Icon }) => <button type="button" key={target} onClick={() => navigate(target)} aria-current={route === target || route === '/history' && target === '/reports' ? 'page' : undefined} aria-label={label}><Icon /><span>{label}</span></button>)}
         </nav>
 
-        {completedReview && <CompletionSheet session={completedReview} onClose={() => setCompletedReview(null)} onDelete={(session) => { timer.deleteCompleted(session.id); setDeletedSession(session); setCompletedReview(null) }} onSave={async (session, patch) => { await timer.updateCompleted(session.id, patch); setCompletedReview(null); setConfirmation('Changes saved'); navigate('/history'); window.setTimeout(() => setConfirmation(''), 3000) }} />}
+        {completedReview && <CompletionSheet session={completedReview} onClose={() => setCompletedReview(null)} onDelete={(session) => { timer.deleteCompleted(session.id); setDeletedSession(session); setCompletedReview(null) }} onSave={async (session, patch) => { await timer.updateCompleted(session.id, patch); setCompletedReview(null); setConfirmation('Changes saved'); window.location.hash = `/history?date=${patch.startedAt ? new Date(patch.startedAt).getFullYear() + '-' + String(new Date(patch.startedAt).getMonth() + 1).padStart(2, '0') + '-' + String(new Date(patch.startedAt).getDate()).padStart(2, '0') : ''}&session=${session.id}`; setRoute('/history'); window.setTimeout(() => setConfirmation(''), 3000) }} />}
         {confirmation && <div className="undo-toast" role="status"><span>{confirmation}</span></div>}
         {deletedSession && <div className="undo-toast" role="status"><span>Session deleted</span><button type="button" onClick={() => { timer.restoreCompleted(deletedSession); setDeletedSession(null) }}>Undo</button><button type="button" onClick={() => setDeletedSession(null)} aria-label="Dismiss">×</button></div>}
       </section>

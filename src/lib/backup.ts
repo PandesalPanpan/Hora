@@ -1,3 +1,4 @@
+import type { ActivityPreset } from '../features/activities/types'
 import { Capacitor } from '@capacitor/core'
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
@@ -13,6 +14,7 @@ type BackupPayload = {
   sessions: StoredSession[]
   plannedBlocks: PlannedBlock[]
   tasks: Task[]
+  activities?: ActivityPreset[]
 }
 
 function backupName(date = new Date()): string {
@@ -21,12 +23,13 @@ function backupName(date = new Date()): string {
 
 export async function createBackup(): Promise<void> {
   await migrateLegacyLocalStorage()
-  const [sessions, plannedBlocks, tasks] = await Promise.all([
+  const [sessions, plannedBlocks, tasks, activities] = await Promise.all([
     db.sessions.toArray(),
     db.plannedBlocks.toArray(),
     db.tasks.toArray(),
+    db.activities.toArray(),
   ])
-  const payload: BackupPayload = { format: 'iza-backup', version: 1, exportedAt: new Date().toISOString(), sessions, plannedBlocks, tasks }
+  const payload: BackupPayload = { format: 'iza-backup', version: 1, exportedAt: new Date().toISOString(), sessions, plannedBlocks, tasks, activities }
   const json = JSON.stringify(payload, null, 2)
   const name = backupName()
 

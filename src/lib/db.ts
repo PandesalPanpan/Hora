@@ -55,6 +55,14 @@ class IzaDatabase extends Dexie {
       })))
       await activities.bulkPut(presets)
     })
+    this.version(4).stores({}).upgrade(async transaction => {
+      const tasks = await transaction.table<Task>('tasks').toArray()
+      const titles = new Map(tasks.map(task => [task.id, task.title]))
+      await transaction.table<StoredSession>('sessions').toCollection().modify(session => {
+        if (session.taskId && !session.taskTitleSnapshot) session.taskTitleSnapshot = titles.get(session.taskId) ?? session.activity.name
+      })
+    })
+
   }
 }
 
@@ -84,7 +92,7 @@ export async function migrateLegacyLocalStorage(): Promise<void> {
 
   await db.transaction('rw', db.sessions, db.plannedBlocks, db.tasks, db.meta, async () => {
     if (active) await db.sessions.put({ ...active, status: active.status ?? 'running' })
-    if (completed.length) await db.sessions.bulkPut(completed.map((session) => ({ ...session, status: 'completed' })))
+    if (completed.length) await db.sessions.bulkPut(completed.map((session) => ({ ...session, status: 'completed', taskTitleSnapshot: session.taskTitleSnapshot ?? tasks.find(task => task.id === session.taskId)?.title })))
     if (planned.length) await db.plannedBlocks.bulkPut(planned)
     if (tasks.length) {
       const migratedAt = new Date().toISOString()
@@ -116,12 +124,14 @@ export async function replaceDatabaseState(input: {
   sessions: StoredSession[]
   plannedBlocks: PlannedBlock[]
   tasks: Task[]
+  activities?: ActivityPreset[]
 }): Promise<void> {
-  await db.transaction('rw', db.sessions, db.plannedBlocks, db.tasks, async () => {
+  await db.transaction('rw', db.sessions, db.plannedBlocks, db.tasks, db.activities, async () => {
     await Promise.all([db.sessions.clear(), db.plannedBlocks.clear(), db.tasks.clear()])
     if (input.sessions.length) await db.sessions.bulkPut(input.sessions)
     if (input.plannedBlocks.length) await db.plannedBlocks.bulkPut(input.plannedBlocks)
     if (input.tasks.length) await db.tasks.bulkPut(input.tasks)
+    if (input.activities) { await db.activities.clear(); if (input.activities.length) await db.activities.bulkPut(input.activities) }
   })
 }
 

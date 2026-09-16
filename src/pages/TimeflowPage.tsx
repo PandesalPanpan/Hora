@@ -1,12 +1,19 @@
-import { Pause, Play, Plus, Square } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import clockMascot from '../assets/hora-clock.png'
+import { ActivityManager } from '../features/activities/ActivityManager'
+import { ensureActivities } from '../features/activities/repository'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../lib/db'
+import { todayFeed } from '../features/planner/todayFeed'
+import { localDateKey } from '../features/reports/period'
+import { CalendarDays, ChevronRight, Pause, Play, SlidersHorizontal, Square } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import clockMascot from '../assets/iza-clock.svg'
 import { activityGroups, categoryColors, type ActivityGroup } from '../features/activities/catalog'
 import type { ActiveSession, Activity, CompletedSession } from '../features/timer/types'
 import type { TimerStartOptions } from '../features/timer/useTimer'
 import { formatCompactDuration, isSameLocalDay, sessionSeconds } from '../lib/time'
 
 type TimeflowPageProps = {
+  onReview: (session: CompletedSession) => void
   active: ActiveSession | null
   completed: CompletedSession[]
   elapsed: number
@@ -14,6 +21,7 @@ type TimeflowPageProps = {
   pause: () => void
   resume: () => void
   setTargetMinutes: (targetMinutes: number | null) => void
+  setNote: (note: string) => void
   acknowledgeTarget: () => void
   advancePomodoro: () => CompletedSession | undefined
   finish: () => CompletedSession | undefined
@@ -28,19 +36,31 @@ function fullClock(totalSeconds: number) {
   return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':')
 }
 
-export function TimeflowPage({ active, completed, elapsed, start, pause, resume, setTargetMinutes, acknowledgeTarget, advancePomodoro, finish }: TimeflowPageProps) {
+export function TimeflowPage({ onReview, active, completed, elapsed, start, pause, resume, setTargetMinutes, setNote, acknowledgeTarget, advancePomodoro, finish }: TimeflowPageProps) {
+  const presets = useLiveQuery(() => db.activities.orderBy('order').toArray())
+  const [manage, setManage] = useState(false)
+  const [activityError, setActivityError] = useState('')
+  useEffect(() => { void ensureActivities().catch(() => setActivityError('Activities could not be loaded. Reopen Today to try again.')) }, [])
+  const plans = useLiveQuery(() => db.plannedBlocks.toArray()) ?? []
+  const feed = todayFeed(active, completed, plans)
   const [group, setGroup] = useState<ActivityGroup>('Focus')
   const [selected, setSelected] = useState<Activity>(activityGroups.Focus[0])
   const [goal, setGoal] = useState<number | null>(25)
   const [mode, setMode] = useState<'flowtime' | 'pomodoro'>('flowtime')
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [breakMinutes, setBreakMinutes] = useState(5)
+  const [pomodoroRounds, setPomodoroRounds] = useState(4)
+  const [focusDraft, setFocusDraft] = useState('25')
+  const [breakDraft, setBreakDraft] = useState('5')
+  const [roundsDraft, setRoundsDraft] = useState('4')
   const todaySessions = useMemo(() => completed.filter((session) => isSameLocalDay(session.startedAt)), [completed])
-  const currentActivity = active?.activity ?? selected
+  const selectedPreset = presets?.find(item => item.id === selected.id && !item.archived) ?? presets?.find(item => !item.archived) ?? selected
+  const currentActivity = active?.activity ?? selectedPreset
   const currentGoal = active ? active.targetMinutes ?? null : goal
   const effectiveMode = active?.timerMode ?? mode
   const goalReached = Boolean(active && currentGoal && elapsed >= currentGoal * 60 && !active.targetAcknowledged)
   const pomodoroRemaining = Math.max(0, (active?.targetMinutes ?? focusMinutes) * 60 - (active ? elapsed : 0))
+  const totalRounds = active?.pomodoro?.totalRounds ?? pomodoroRounds
 
   const chooseGoal = (minutes: number) => {
     if (active) setTargetMinutes(minutes)
@@ -49,19 +69,34 @@ export function TimeflowPage({ active, completed, elapsed, start, pause, resume,
 
   const selectGroup = (nextGroup: ActivityGroup) => setGroup(nextGroup)
 
+  const commitNumber = (draft: string, minimum: number, maximum: number, fallback: number, setDraft: (value: string) => void, setValue: (value: number) => void) => {
+    const parsed = Number(draft)
+    const value = Math.min(maximum, Math.max(minimum, Number.isFinite(parsed) && draft.trim() ? Math.round(parsed) : fallback))
+    setDraft(String(value)); setValue(value)
+    return value
+  }
+
+  const commitPomodoro = () => ({
+    focus: commitNumber(focusDraft, 1, 180, focusMinutes, setFocusDraft, setFocusMinutes),
+    rest: commitNumber(breakDraft, 1, 60, breakMinutes, setBreakDraft, setBreakMinutes),
+    rounds: commitNumber(roundsDraft, 1, 8, pomodoroRounds, setRoundsDraft, setPomodoroRounds),
+  })
+
   const startCurrent = () => {
     if (mode === 'pomodoro') {
-      start(selected, focusMinutes, {
+      const values = commitPomodoro()
+      start(selectedPreset, values.focus, {
         timerMode: 'pomodoro',
-        pomodoro: { phase: 'focus', round: 1, focusMinutes, breakMinutes, focusActivity: selected },
+        pomodoro: { phase: 'focus', round: 1, focusMinutes: values.focus, breakMinutes: values.rest, totalRounds: values.rounds, focusActivity: selectedPreset },
       })
       return
     }
-    start(selected, goal, { timerMode: 'flowtime' })
+    start(selectedPreset, goal, { timerMode: 'flowtime' })
   }
 
   return (
     <section className="today-page">
+      {manage && <ActivityManager onClose={() => setManage(false)} />}
       <div className="mode-switch" aria-label="Timer mode">
         <button className={effectiveMode === 'flowtime' ? 'selected' : ''} type="button" aria-pressed={effectiveMode === 'flowtime'} onClick={() => !active && setMode('flowtime')}>Flowtime</button>
         <button className={effectiveMode === 'pomodoro' ? 'selected' : ''} type="button" aria-pressed={effectiveMode === 'pomodoro'} onClick={() => !active && setMode('pomodoro')}>Pomodoro</button>
@@ -69,27 +104,27 @@ export function TimeflowPage({ active, completed, elapsed, start, pause, resume,
 
       <div className="today-layout">
         <div className="timer-column">
-          <h1>{effectiveMode === 'pomodoro' ? 'A tiny focus sprint ✦' : active ? 'Stay with this one thing ♡' : `Ready for ${selected.name}?`}</h1>
+          <h1>{effectiveMode === 'pomodoro' ? (active ? 'A tiny focus sprint ✦' : `Ready for ${selectedPreset.name}?`) : active ? 'Stay with this one thing ♡' : `Ready for ${selectedPreset.name}?`}</h1>
 
           {effectiveMode === 'pomodoro' ? (
             <section className="pomodoro-card" aria-label="Pomodoro timer">
-              <span className="live-kicker">{active?.pomodoro ? `${active.pomodoro.phase === 'focus' ? 'Focus' : 'Break'} · ${active.pomodoro.round} of 4` : 'Four gentle focus rounds'}</span>
-              {!active && <div className="pomodoro-settings"><label>Focus<input aria-label="Focus minutes" type="number" min="1" max="180" value={focusMinutes} onChange={(event) => setFocusMinutes(Math.max(1, Number(event.target.value) || 1))} /></label><label>Break<input aria-label="Break minutes" type="number" min="1" max="60" value={breakMinutes} onChange={(event) => setBreakMinutes(Math.max(1, Number(event.target.value) || 1))} /></label></div>}
+              <span className="live-kicker">{active?.pomodoro ? `${active.pomodoro.phase === 'focus' ? 'Focus' : 'Break'} · ${active.pomodoro.round} of ${totalRounds}` : `${pomodoroRounds} gentle focus ${pomodoroRounds === 1 ? 'round' : 'rounds'}`}</span>
+              {!active ? <div className="pomodoro-settings"><label>Focus<input aria-label="Focus minutes" inputMode="numeric" type="number" min="1" max="180" value={focusDraft} onChange={(event) => setFocusDraft(event.target.value)} onBlur={() => commitNumber(focusDraft,1,180,focusMinutes,setFocusDraft,setFocusMinutes)} onKeyDown={event => event.key === 'Enter' && event.currentTarget.blur()} /></label><label>Break<input aria-label="Break minutes" inputMode="numeric" type="number" min="1" max="60" value={breakDraft} onChange={(event) => setBreakDraft(event.target.value)} onBlur={() => commitNumber(breakDraft,1,60,breakMinutes,setBreakDraft,setBreakMinutes)} onKeyDown={event => event.key === 'Enter' && event.currentTarget.blur()} /></label><label>Rounds<input aria-label="Focus rounds" inputMode="numeric" type="number" min="1" max="8" value={roundsDraft} onChange={(event) => setRoundsDraft(event.target.value)} onBlur={() => commitNumber(roundsDraft,1,8,pomodoroRounds,setRoundsDraft,setPomodoroRounds)} onKeyDown={event => event.key === 'Enter' && event.currentTarget.blur()} /></label></div> : <div className="pomodoro-settings"><p>{active.pomodoro?.phase === 'break' ? 'Break' : 'Focus'} · Round {active.pomodoro?.round ?? 1} of {totalRounds}{active.status === 'paused' ? ' · Paused' : ''}</p></div>}
               <div className="pomodoro-ring"><strong aria-label={`${pomodoroRemaining} seconds remaining`}>{String(Math.floor(pomodoroRemaining / 60)).padStart(2, '0')}:{String(pomodoroRemaining % 60).padStart(2, '0')}</strong><span>{currentActivity.name}</span></div>
               {goalReached && active?.pomodoro ? (
                 <div className="timer-actions milestone-actions">
                   <button type="button" onClick={acknowledgeTarget}>{active.pomodoro.phase === 'focus' ? 'Keep focusing' : 'Keep resting'}</button>
-                  <button className="primary" type="button" onClick={advancePomodoro}>{active.pomodoro.phase === 'focus' ? 'Start break' : active.pomodoro.round >= 4 ? 'Finish cycle' : 'Next focus'}</button>
+                  <button className="primary" type="button" onClick={advancePomodoro}>{active.pomodoro.phase === 'focus' ? 'Start break' : active.pomodoro.round >= totalRounds ? 'Finish cycle' : 'Next focus'}</button>
                 </div>
               ) : (
                 <div className="timer-actions">
-                  {!active ? <button className="primary" type="button" onClick={startCurrent} aria-label={`Start ${selected.name} Pomodoro`}><Play fill="currentColor" />Start focus</button> : <>
-                    <button type="button" onClick={active.status === 'paused' ? resume : pause} aria-label={active.status === 'paused' ? 'Resume session' : 'Pause session'}>{active.status === 'paused' ? <Play fill="currentColor" /> : <Pause />} {active.status === 'paused' ? 'Resume' : 'Pause'}</button>
-                    <button className="primary" type="button" onClick={finish} aria-label="Finish session"><Square fill="currentColor" />End</button>
+                  {!active ? <button className="primary" type="button" onClick={startCurrent} aria-label={`Start ${selectedPreset.name} Pomodoro`}><Play fill="currentColor" />Start focus</button> : <>
+                    <button type="button" onClick={active.status === 'paused' ? resume : pause} aria-label={`${active.status === 'paused' ? 'Resume' : 'Pause'} ${active.pomodoro?.phase === 'break' ? 'break' : 'focus'}`}>{active.status === 'paused' ? <Play fill="currentColor" /> : <Pause />} {active.status === 'paused' ? 'Resume' : 'Pause'} {active.pomodoro?.phase === 'break' ? 'break' : 'focus'}</button>
+                    <button className="primary" type="button" onClick={finish} aria-label={`Finish ${active.pomodoro?.phase === 'break' ? 'break' : 'focus'}`}><Square fill="currentColor" />Finish {active.pomodoro?.phase === 'break' ? 'break' : 'focus'}</button>
                   </>}
                 </div>
               )}
-              <small>{active?.pomodoro?.phase === 'break' ? `Next: focus round ${Math.min(4, active.pomodoro.round + 1)}` : `Next: ${active?.pomodoro?.breakMinutes ?? breakMinutes} min soft break`}</small>
+              <small>{active?.pomodoro?.phase === 'break' ? (active.pomodoro.round >= totalRounds ? 'Next: finish this cycle' : `Next: focus round ${active.pomodoro.round + 1}`) : `Next: ${active?.pomodoro?.breakMinutes ?? breakMinutes} min soft break`}</small>
             </section>
           ) : active ? (
             <section className="live-timer-card" aria-label="Timer">
@@ -104,34 +139,53 @@ export function TimeflowPage({ active, completed, elapsed, start, pause, resume,
               </div>
             </section>
           ) : (
-            <section className="ready-timer-card" aria-label="Timer">
-              <span className="activity-chip">{selected.name}</span>
+            <section className="ready-timer-card" aria-label="Timer" style={{ borderColor: selectedPreset.color }}>
+              <span className="activity-chip" style={{ borderBottom: `3px solid ${selectedPreset.color}` }}><small>Selected activity</small><strong>{selectedPreset.name}</strong></span>
               <img src={clockMascot} alt="Iza clock character" />
               <div className="ready-controls">
                 <strong className="timer-digits">00:00:00</strong>
                 <small>minimum goal</small>
                 <div className="goal-row">{[25, 30, 60].map((minutes) => <button key={minutes} className={currentGoal === minutes ? 'selected' : ''} type="button" onClick={() => chooseGoal(minutes)} aria-label={`Set ${minutes} minute goal`}>{minutes}</button>)}</div>
-                <button className="start-flowtime" type="button" onClick={startCurrent} aria-label={`Start ${selected.name} session`}><Play fill="currentColor" />Start flowtime</button>
+                <button className="start-flowtime" type="button" onClick={startCurrent} aria-label={`Start ${selectedPreset.name} session`}><Play fill="currentColor" />Start flowtime</button>
               </div>
             </section>
           )}
 
+          {active && <label className="active-note-editor"><span>Session note <small>Optional</small></span><textarea value={active.note ?? ''} onChange={(event) => setNote(event.target.value)} placeholder="What are you working on?" /></label>}
+
           <section className="vibe-picker" aria-labelledby="vibe-title">
-            <h2 id="vibe-title">Choose an activity</h2>
-            <div>{(Object.keys(activityGroups) as ActivityGroup[]).map((name) => <button type="button" key={name} aria-pressed={group === name} onClick={() => selectGroup(name)} style={{ '--vibe': categoryColors[name] } as React.CSSProperties}>{name}</button>)}</div>
-            <div className="activity-pills" aria-label={`${group} activities`}>{activityGroups[group].map((activity) => <button type="button" key={activity.id} className={selected.id === activity.id ? 'selected' : ''} onClick={() => setSelected(activity)} disabled={Boolean(active)}>{activity.name}</button>)}</div>
+            <header className="activity-picker-heading"><div><h2 id="vibe-title">Choose an activity</h2><p>Your timer uses the activity you select below.</p></div><button type="button" onClick={() => setManage(true)} aria-label="Manage activities"><SlidersHorizontal /></button></header>{activityError && <p role="alert">{activityError}</p>}
+            <span className="filter-label">Filter activities</span><div aria-label="Filter activities">{(Object.keys(activityGroups) as ActivityGroup[]).map((name) => <button type="button" key={name} aria-label={name} aria-pressed={group === name} onClick={() => selectGroup(name)} style={{ '--vibe': categoryColors[name] } as React.CSSProperties}>{name}{group === name ? ' ✓' : ''}</button>)}</div>
+            <p className="filter-summary">Showing {group.toLocaleLowerCase()} activities</p><div className="activity-pills" aria-label={`${group} activities`}>{(presets ? presets.filter(preset => preset.category === group && !preset.archived) : activityGroups[group].filter(activity => activity.id !== 'custom')).map((activity) => <button type="button" key={activity.id} aria-label={activity.name} aria-pressed={selectedPreset.id === activity.id} className={selectedPreset.id === activity.id ? 'selected' : ''} onClick={() => setSelected(activity)} disabled={Boolean(active)}>{activity.name}{selectedPreset.id === activity.id ? ' ✓' : ''}</button>)}</div>{active && <p>Finish this session to choose another activity.</p>}
           </section>
         </div>
 
         <aside className="today-side">
-          <section className="quick-label-card">
-            <h2>Quick start</h2>
-            <div><strong>{todaySessions[0]?.activity.name ?? selected.name}</strong>{todaySessions[0] && <time>{timeFormatter.format(new Date(todaySessions[0].startedAt))} – {timeFormatter.format(new Date(todaySessions[0].finishedAt))}</time>}</div>
-            <p>{todaySessions.length ? `${formatCompactDuration(todaySessions.reduce((sum, session) => sum + sessionSeconds(session), 0))} today` : 'Ready when you are'}</p>
-            <button type="button" onClick={startCurrent} disabled={Boolean(active)} aria-label={`Start ${selected.name} from quick label`}><Plus /></button>
+          <section className="today-feed">
+            <h2>Today so far</h2>
+            {feed.map((row) => {
+              const duration = row.kind === 'Live' ? elapsed : row.durationSeconds
+              return <button
+                className={`today-feed-row ${row.kind.toLowerCase()}`}
+                type="button"
+                key={row.id}
+                style={{ '--feed-color': row.color } as React.CSSProperties}
+                onClick={() => { if (row.session) onReview(row.session); else if (row.kind === 'Live') { document.querySelector<HTMLElement>('.timer-column')?.scrollIntoView({ block: 'start' }); document.querySelector<HTMLButtonElement>('.timer-actions button')?.focus() } else window.location.hash = row.destination }}
+              >
+                <i aria-hidden="true" />
+                <div>
+                  <time>{row.kind} · {timeFormatter.format(new Date(row.startedAt))}</time>
+                  <strong>{row.title}</strong>
+                  {row.note && <small>{row.note}</small>}
+                </div>
+                {duration !== undefined && <b>{formatCompactDuration(duration)}</b>}
+              </button>
+            })}
+            {!feed.length && <p>Choose an activity in the timer above to begin your day.</p>}
+            <button className="today-card-action" type="button" onClick={() => { window.location.hash = `#/planner?view=day&date=${localDateKey(new Date())}` }}><CalendarDays /><span>View full day</span><ChevronRight /></button>
           </section>
           <section className="today-summary"><span>Today</span><strong>{formatCompactDuration(todaySessions.reduce((sum, session) => sum + sessionSeconds(session), 0))}</strong><small>{todaySessions.length} {todaySessions.length === 1 ? 'session' : 'sessions'}</small><i><b style={{ width: `${Math.min(100, todaySessions.reduce((sum, session) => sum + sessionSeconds(session), 0) / 21600 * 100)}%` }} /></i></section>
-          <section className="recent-card"><h2>Recent sessions</h2>{todaySessions.slice(0, 2).map((session) => <div key={session.id}><span>{session.activity.name}</span><b style={{ background: session.activity.color }}>{formatCompactDuration(sessionSeconds(session))}</b></div>)}{todaySessions.length === 0 && <p>Completed sessions will appear here.</p>}</section>
+
         </aside>
       </div>
     </section>

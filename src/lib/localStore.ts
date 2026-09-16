@@ -13,7 +13,11 @@ function parse<T>(value: string | null, fallback: T): T {
 }
 
 export const localStore = {
-  hydrate: loadDatabaseState,
+  async hydrate() {
+    const state = await loadDatabaseState()
+    localStorage.setItem(COMPLETED_KEY, JSON.stringify(state.completed))
+    return state
+  },
 
   getActive(): ActiveSession | null {
     return parse<ActiveSession | null>(localStorage.getItem(ACTIVE_KEY), null)

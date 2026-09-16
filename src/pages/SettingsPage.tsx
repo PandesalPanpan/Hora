@@ -1,5 +1,6 @@
-import { BellRing, CalendarDays, CheckSquare, Database, Download, Smartphone, Upload } from 'lucide-react'
+import { BellRing, CalendarDays, CheckSquare, ChevronRight, Database, Download, Sparkles, Smartphone, Upload } from 'lucide-react'
 import type { AppRoute } from '../App'
+import { currentVersion } from '../features/releases/changelog'
 import { createBackup, restoreBackup } from '../lib/backup'
 import { useRef, useState } from 'react'
 
@@ -29,7 +30,9 @@ export function SettingsPage({ onNavigate }: { onNavigate: (route: AppRoute) => 
   return (
     <section className="hora-page me-page">
       <header className="hora-page-heading"><h1>Your gentle corner</h1><p>Plan what helps. Keep the rest simple.</p></header>
-      <section className="profile-card"><span>I</span><div><strong>Iza beta</strong><small>Your data stays on this device first</small></div></section>
+      <section className="profile-card"><span>I</span><div><strong>Iza beta · v{currentVersion}</strong><small>Your data stays on this device first</small></div></section>
+      <h2>About Iza</h2>
+      <div className="tool-links"><button type="button" onClick={() => onNavigate('/changelog')}><Sparkles /><span><strong>What’s new</strong><small>See changes in every version</small></span><ChevronRight /></button></div>
       <h2>Planning tools</h2>
       <div className="tool-links"><button type="button" onClick={() => onNavigate('/planner')}><CalendarDays /><span><strong>Open planner</strong><small>Plan blocks beside actual time</small></span></button><button type="button" onClick={() => onNavigate('/tasks')}><CheckSquare /><span><strong>Open tasks</strong><small>Keep the next step close</small></span></button></div>
       <h2>App status</h2>

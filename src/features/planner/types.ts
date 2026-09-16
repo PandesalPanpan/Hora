@@ -3,6 +3,7 @@ export type PlannerCategory = 'Focus' | 'Leisure' | 'Others' | 'Rest'
 export type PlannedBlock = {
   id: string
   title: string
+  note?: string
   category: PlannerCategory
   color: string
   startedAt: string
@@ -15,6 +16,7 @@ export type PlannedBlock = {
     weekdays?: number[]
     endsOn: string
   }
+  excludedDates?: string[]
   occurrenceDate?: string
   detachedFromSeries?: boolean
 }
