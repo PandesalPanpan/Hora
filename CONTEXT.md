@@ -52,6 +52,10 @@ Tasks whose work is marked complete. They are hidden from the default open-task 
 
 Removal of the task record without removing completed Timeflow sessions linked to it. Historical sessions retain a snapshot of the task title for History and Reports. A brief Undo action may restore the task and its links.
 
+## Character silhouette
+
+Iza's recognizable circular head with small triangular ears attached to its upper edge, matching the original reference character rather than detached geometric decorations. The silhouette scales consistently between the full timer and compact states.
+
 ## Custom activity
 
 A user-created activity with a stable ID, name, activity category, and color. It can appear in the Today activity picker and Quick start, and may be edited, manually reordered, moved directly between activity categories, or archived. Moving an activity into a category also sets its position within that category; changing category does not require opening the activity editor. If the activity already has linked records, a category move is not committed until the user chooses whether the change applies only to future use, updates linked historical records too, or is cancelled. An edit may likewise apply only to future use or, after explicit confirmation, update past Timeflow sessions and planned blocks linked by the same activity ID. Archiving is the activity's soft-delete behavior: archived activities remain linked to existing records, do not participate in category ordering, and appear alphabetically in a separate collapsed section. Restoring one returns it to the end of its previous category. Archived activities remain recoverable and are not permanently deleted through activity management. Activity names are unique after trimming whitespace and ignoring capitalization; creating a name owned by an archived activity offers to restore that activity instead. It is not a free-form tag or a task.
