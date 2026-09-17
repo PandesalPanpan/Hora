@@ -140,7 +140,6 @@ export function TimeflowPage({ onReview, active, completed, elapsed, start, paus
             </section>
           ) : (
             <section className="ready-timer-card" aria-label="Timer" style={{ borderColor: selectedPreset.color }}>
-              <span className="activity-chip" style={{ borderBottom: `3px solid ${selectedPreset.color}` }}><small>Selected activity</small><strong>{selectedPreset.name}</strong></span>
               <img src={clockMascot} alt="Iza clock character" />
               <div className="ready-controls">
                 <strong className="timer-digits">00:00:00</strong>

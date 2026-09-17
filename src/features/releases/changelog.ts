@@ -13,6 +13,15 @@ export const currentVersionCode = packageMetadata.androidVersionCode
 
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: '0.1.1',
+    date: '2026-09-17',
+    title: 'A simpler start',
+    summary: 'The ready Flowtime timer is less crowded, so starting a session takes less visual effort.',
+    changes: [
+      'Removed the repeated activity label above the ready timer while keeping activity selection clear below it.',
+    ],
+  },
+  {
     version: '0.1.0',
     date: '2026-09-16',
     title: 'A clearer way to track your day',

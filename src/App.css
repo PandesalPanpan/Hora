@@ -39,7 +39,6 @@ button { touch-action: manipulation; }
 .ready-timer-card, .live-timer-card, .pomodoro-card { min-height: 224px; border: 1.5px solid var(--hora-line); border-radius: 27px; position: relative; overflow: hidden; background: white; box-shadow: 0 6px 16px rgba(122,83,74,.07); }
 .ready-timer-card { padding: 48px 17px 10px 14px; display: grid; grid-template-columns: 102px 1fr; align-items: center; gap: 8px; }
 .ready-timer-card > img { width: 102px; height: 102px; object-fit: contain; }
-.activity-chip { min-width: 90px; height: 32px; padding: 6px 14px; border-radius: 16px; position: absolute; right: 18px; top: 14px; color: var(--hora-pink); background: var(--hora-rose); font-size: 12px; font-weight: 700; text-align: center; }
 .ready-controls { min-width: 0; display: flex; flex-direction: column; align-items: center; }
 .timer-digits { font: 700 clamp(30px, 9vw, 37px)/1 'Poppins', sans-serif; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ready-controls > small, .live-timer-card > small { margin-top: 10px; color: var(--hora-muted); font-size: 11px; font-weight: 600; }
@@ -384,9 +383,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .completion-sheet .choice-row button, .completion-sheet input { min-height: 44px; }
 
 /* UX feedback refinements */
-.activity-chip { width: max-content; max-width: calc(100% - 36px); height: auto; min-height: 40px; padding: 5px 13px 6px; display: grid; justify-items: center; line-height: 1.1; }
-.activity-chip small { color: var(--hora-muted); font-size: 8px; font-weight: 600; }
-.activity-chip strong { max-width: 150px; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .activity-picker-heading { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .activity-picker-heading > div { min-width: 0; }
 .activity-picker-heading h2 { margin: 0; }
@@ -495,16 +491,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 @media (max-width: 360px) {
-  .activity-chip strong { max-width: 110px; }
   .history-date-strip { margin-inline: -2px; }
 }
 
-/* Keep the selection status clear of the timer, and separate picking from the day log. */
-.ready-timer-card { padding-top: 74px; }
+/* Separate activity picking from the day log. */
 .vibe-picker { margin-bottom: 18px; }
 
 @media (min-width: 760px) {
-  .ready-timer-card { padding-top: 82px; }
   .vibe-picker { margin-bottom: 0; }
 }
 
