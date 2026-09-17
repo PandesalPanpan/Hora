@@ -7,3 +7,7 @@ vite.config.d.ts
 .env
 .env.*
 !.env.example
+*.jks
+*.keystore
+*.p12
+android/signing.properties

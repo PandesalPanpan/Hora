@@ -2,6 +2,7 @@
   "name": "iza-time-tracker",
   "private": true,
   "version": "0.1.0",
+  "androidVersionCode": 1,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +14,9 @@
     "android:open": "npm run android:sync && cap open android",
     "android:run": "npm run android:sync && cap run android",
     "android:apk": "npm run android:sync && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1",
-    "android:emulator": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-emulator.ps1"
+    "android:emulator": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-emulator.ps1",
+    "release:doctor": "node scripts/release.mjs doctor",
+    "release": "node scripts/release.mjs release"
   },
   "dependencies": {
     "@capacitor/android": "8.4.3",

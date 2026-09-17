@@ -39,6 +39,14 @@ The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 The native application ID is `com.izatime.tracker`.
 
+### Android updates
+
+Android sideload updates use the public GitHub Releases API for `PandesalPanpan/Hora`. The app checks `releases/latest` in the background on Android, reads the exact `update.json` release asset, compares its numeric `versionCode` with the installed Android version, and downloads the named APK only after the user chooses to update. The current app remains usable when offline or when GitHub is unavailable.
+
+The release and signing contract is documented in [docs/ANDROID_UPDATES.md](docs/ANDROID_UPDATES.md). Before publishing a release, configure the documented GitHub Actions secrets; never commit the release keystore or its passwords.
+
+Once the signing secrets are configured and `gh auth login` has been completed, use `npm run release:doctor` to verify the release connection and `npm run release -- release --version 0.2.0 --version-code 2` to tag and start a signed GitHub release. The command requires a clean `main` worktree.
+
 ### Installed development emulator
 
 This development machine has a hardware-accelerated Pixel 8 emulator running Android 16/API 36 with Google Play APIs. Start it with:
@@ -56,6 +64,8 @@ npm test
 npm run lint
 npm run build
 ```
+
+GitHub Actions runs these checks, plus an Android debug APK build, for pull requests and pushes to `main`. Tagged releases use the separate signed Android release workflow described in [docs/ANDROID_UPDATES.md](docs/ANDROID_UPDATES.md).
 
 ## Included now
 

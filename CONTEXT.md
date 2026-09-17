@@ -91,3 +91,7 @@ An optional note attached to a Timeflow session. It may be added or edited while
 ## Planned-block note
 
 An optional note attached to a planned block. It describes the intended block and remains separate from any note on a linked Timeflow session.
+
+## Android release version
+
+The version pair published with an installable Android APK: a human-readable version name and a monotonically increasing Android version code. The version code determines whether an APK is a newer update; the version name is for display and release communication.

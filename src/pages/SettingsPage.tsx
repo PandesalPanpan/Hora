@@ -1,10 +1,11 @@
-import { BellRing, CalendarDays, CheckSquare, ChevronRight, Database, Download, Sparkles, Smartphone, Upload } from 'lucide-react'
+import { BellRing, CalendarDays, CheckSquare, ChevronRight, Database, Download, RefreshCw, Sparkles, Smartphone, Upload } from 'lucide-react'
 import type { AppRoute } from '../App'
 import { currentVersion } from '../features/releases/changelog'
 import { createBackup, restoreBackup } from '../lib/backup'
+import type { UpdateManager } from '../features/updates/useUpdateManager'
 import { useRef, useState } from 'react'
 
-export function SettingsPage({ onNavigate }: { onNavigate: (route: AppRoute) => void }) {
+export function SettingsPage({ onNavigate, updates }: { onNavigate: (route: AppRoute) => void; updates: UpdateManager }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [backupStatus, setBackupStatus] = useState('')
 
@@ -30,9 +31,14 @@ export function SettingsPage({ onNavigate }: { onNavigate: (route: AppRoute) => 
   return (
     <section className="hora-page me-page">
       <header className="hora-page-heading"><h1>Your gentle corner</h1><p>Plan what helps. Keep the rest simple.</p></header>
-      <section className="profile-card"><span>I</span><div><strong>Iza beta · v{currentVersion}</strong><small>Your data stays on this device first</small></div></section>
+      <section className="profile-card"><span>I</span><div><strong>App version {currentVersion}</strong><small>Your data stays on this device first</small></div></section>
       <h2>About Iza</h2>
-      <div className="tool-links"><button type="button" onClick={() => onNavigate('/changelog')}><Sparkles /><span><strong>What’s new</strong><small>See changes in every version</small></span><ChevronRight /></button></div>
+      <div className="tool-links">
+        <button type="button" onClick={() => onNavigate('/changelog')}><Sparkles /><span><strong>What’s new</strong><small>See changes in every version</small></span><ChevronRight /></button>
+        {updates.supportsUpdates && <button type="button" className="update-check-button" onClick={() => void updates.checkForUpdates()} disabled={updates.state.status === 'checking'}><RefreshCw /><span><strong>Check for updates</strong><small>{updates.state.status === 'checking' ? 'Checking GitHub…' : 'Look for a newer Android APK'}</small></span><ChevronRight /></button>}
+      </div>
+      {updates.supportsUpdates && updates.state.message && updates.state.status !== 'available' && <p className="update-settings-status" role="status">{updates.state.message}</p>}
+      {updates.supportsUpdates && updates.state.status === 'available' && <p className="update-settings-status" role="status">Version {updates.state.update?.versionName} is available above.</p>}
       <h2>Planning tools</h2>
       <div className="tool-links"><button type="button" onClick={() => onNavigate('/planner')}><CalendarDays /><span><strong>Open planner</strong><small>Plan blocks beside actual time</small></span></button><button type="button" onClick={() => onNavigate('/tasks')}><CheckSquare /><span><strong>Open tasks</strong><small>Keep the next step close</small></span></button></div>
       <h2>App status</h2>

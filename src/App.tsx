@@ -5,9 +5,11 @@ import { Keyboard } from '@capacitor/keyboard'
 import { BarChart3, CalendarDays, CheckSquare, Clock3, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CompletionSheet } from './components/CompletionSheet'
+import { UpdateBanner } from './components/UpdateBanner'
 import { Planner } from './features/planner/Planner'
 import type { CompletedSession } from './features/timer/types'
 import { useTimer } from './features/timer/useTimer'
+import { useUpdateManager } from './features/updates/useUpdateManager'
 import { formatDuration } from './lib/time'
 import { HistoryPage } from './pages/HistoryPage'
 import { ChangelogPage } from './pages/ChangelogPage'
@@ -37,6 +39,7 @@ export default function App() {
   useSheetNavigation()
   const appCanvasRef = useRef<HTMLElement>(null)
   const timer = useTimer()
+  const updates = useUpdateManager()
   const [routeKey, setRouteKey] = useState(window.location.hash)
   const [route, setRoute] = useState<AppRoute>(routeFromHash)
   const [completedReview, setCompletedReview] = useState<CompletedSession | null>(null)
@@ -101,6 +104,8 @@ export default function App() {
             <button className="notification-button" type="button" aria-label="Open settings" onClick={() => navigate('/settings')}><UserRound aria-hidden="true" /></button>
           </header>
 
+          <UpdateBanner state={updates.state} onLater={updates.later} onDownload={() => void updates.download()} onInstall={() => void updates.install()} onOpenInstallSettings={() => void updates.openInstallSettings()} />
+
           {timer.active && route !== '/today' && <button className="active-session-dock" type="button" onClick={() => navigate('/today')}><span style={{ backgroundColor: timer.active.activity.color }}><Clock3 /></span><span><strong>{timer.active.activity.name}</strong><small>{timer.active.status === 'paused' ? 'Paused' : 'Tracking now'}</small></span><b>{formatDuration(timer.elapsed)}</b></button>}
 
           <section className="content-panel">
@@ -109,7 +114,7 @@ export default function App() {
             {route === '/tasks' && <TasksPage active={timer.active} onStart={timer.start} />}
             {route === '/planner' && <Planner key={routeKey} active={timer.active} completed={timer.completed} elapsed={timer.elapsed} onFinish={timer.finish} onStart={timer.start} onReview={setCompletedReview} />}
             {route === '/reports' && <ReportsPage completed={timer.completed} onOpenHistory={(date) => { window.history.pushState(null, '', `#/history?date=${date}`); setRoute('/history') }} />}
-            {route === '/settings' && <SettingsPage onNavigate={navigate} />}
+            {route === '/settings' && <SettingsPage onNavigate={navigate} updates={updates} />}
             {route === '/changelog' && <ChangelogPage onBack={() => navigate('/settings')} />}
           </section>
         </div>

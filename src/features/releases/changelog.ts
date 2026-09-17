@@ -1,3 +1,5 @@
+import packageMetadata from '../../../package.json'
+
 export type ReleaseNote = {
   version: string
   date: string
@@ -6,7 +8,8 @@ export type ReleaseNote = {
   changes: string[]
 }
 
-export const currentVersion = '0.1.0'
+export const currentVersion = packageMetadata.version
+export const currentVersionCode = packageMetadata.androidVersionCode
 
 export const releaseNotes: ReleaseNote[] = [
   {
