@@ -25,6 +25,7 @@ function run(command, args, options = {}) {
     encoding: 'utf8',
     stdio: options.capture ? 'pipe' : 'inherit',
     windowsHide: true,
+    shell: process.platform === 'win32' && command === 'npm',
   })
   if (result.error) throw new Error(`Could not run ${command}: ${result.error.message}`)
   if (result.status !== 0) {
