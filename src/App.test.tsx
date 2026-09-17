@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { toLocalInput } from './lib/completionTime'
 
 describe('Iza timer and navigation', () => {
   beforeEach(() => {
@@ -82,7 +83,7 @@ describe('Iza timer and navigation', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(100) })
     expect(screen.getByRole('button', { name: 'Edit Study time log' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Edit Study time log' }))
-    fireEvent.change(screen.getByLabelText('Finished'), { target: { value: '2026-09-12T14:02' } })
+    fireEvent.change(screen.getByLabelText('Finished'), { target: { value: toLocalInput('2026-09-12T06:02:00.000Z') } })
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
     await act(async () => { await vi.advanceTimersByTimeAsync(100) })
     expect(screen.getAllByText('2m').length).toBeGreaterThan(0)
