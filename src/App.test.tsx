@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { toLocalInput } from './lib/completionTime'
+import { currentVersion } from './features/releases/changelog'
 
 describe('Iza timer and navigation', () => {
   beforeEach(() => {
@@ -161,7 +162,7 @@ describe('Iza timer and navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: /What’s new/i }))
     expect(window.location.hash).toBe('#/changelog')
     expect(screen.getByRole('heading', { name: 'What’s new' })).toBeInTheDocument()
-    expect(screen.getByText('Latest · v0.1.0')).toBeInTheDocument()
+    expect(screen.getByText(`Latest · v${currentVersion}`)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Back to your gentle corner' }))
     expect(window.location.hash).toBe('#/settings')
   })

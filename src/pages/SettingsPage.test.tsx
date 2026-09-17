@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SettingsPage } from './SettingsPage'
 import type { UpdateManager } from '../features/updates/useUpdateManager'
+import { currentVersion } from '../features/releases/changelog'
 
 function manager(): UpdateManager {
   return {
@@ -23,6 +24,6 @@ describe('SettingsPage updates', () => {
     render(<SettingsPage onNavigate={vi.fn()} updates={updates} />)
     fireEvent.click(screen.getByRole('button', { name: /Check for updates/i }))
     expect(updates.checkForUpdates).toHaveBeenCalledOnce()
-    expect(screen.getByText('App version 0.1.0')).toBeInTheDocument()
+    expect(screen.getByText(`App version ${currentVersion}`)).toBeInTheDocument()
   })
 })
