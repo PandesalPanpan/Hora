@@ -99,7 +99,9 @@ function validateReleaseVersion(version, versionCode, currentVersion, currentVer
   const nextVersionCode = Number(versionCode)
   if (!Number.isSafeInteger(nextVersionCode) || nextVersionCode < 1) throw new Error(`Version code ${versionCode} must be a positive safe integer.`)
   const isCurrentVersion = version === currentVersion && nextVersionCode === currentVersionCode
-  if (nextVersionCode <= currentVersionCode && !(initial && isCurrentVersion)) {
+  // A prior run may have prepared this exact metadata before failing its checks;
+  // ensureTagDoesNotExist below still prevents publishing the pair twice.
+  if (nextVersionCode <= currentVersionCode && !isCurrentVersion) {
     throw new Error(`Version code ${nextVersionCode} must be greater than the current version code ${currentVersionCode}.`)
   }
   if (initial && !isCurrentVersion) throw new Error(`The initial release must use the current package version ${currentVersion} and version code ${currentVersionCode}.`)
