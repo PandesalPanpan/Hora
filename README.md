@@ -78,9 +78,12 @@ GitHub Actions runs these checks, plus an Android debug APK build, for pull requ
 - Planned-block creation, persistence, and 15-minute resize handles
 - Planned, completed, overlapping, and live Timeflow calendar states
 - Planned-versus-actual session inspection
+- Optional planned-block reminders with recurring occurrence support
 - Pause and resume with paused time excluded from actual duration
+- Native Android Timeflow and Pomodoro milestone alerts with precise-alarm fallback
+- Notification status, permission controls, test alerts, and typed notification tap routing
 - URL-backed Timeflow, Tasks, Planner, Reports, and Settings screens
-- Reusable Iza character states for timing, guidance, and empty states
+- Hora clock character PNG in the primary timer
 - Android safe-area and dynamic-viewport layout behavior
 - Unit and component coverage for duration and recovery
 - Capacitor Android shell and repeatable build/sync scripts

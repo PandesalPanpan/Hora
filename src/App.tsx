@@ -11,6 +11,7 @@ import type { CompletedSession } from './features/timer/types'
 import { useTimer } from './features/timer/useTimer'
 import { useUpdateManager } from './features/updates/useUpdateManager'
 import { formatDuration } from './lib/time'
+import { initializeNotifications, reconcileAllNotifications } from './lib/notifications'
 import { HistoryPage } from './pages/HistoryPage'
 import { ChangelogPage } from './pages/ChangelogPage'
 import { ReportsPage } from './pages/ReportsPage'
@@ -70,6 +71,36 @@ export default function App() {
     void CapacitorApp.addListener('backButton', () => { if (document.querySelector('.completion-sheet, .quick-add-popover, .event-inspector')) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); else if (route !== '/today') window.history.back(); else void CapacitorApp.exitApp() }).then((listener) => disposed ? void listener.remove() : handle = listener)
     return () => { disposed = true; if (handle) void handle.remove() }
   }, [route])
+
+  useEffect(() => {
+    let disposed = false
+    let initialization: { dispose: () => Promise<void> } | undefined
+    void initializeNotifications((destination) => {
+      if (!disposed) window.location.hash = destination
+    }).then((value) => {
+      if (disposed) void value.dispose()
+      else initialization = value
+    }).catch(() => undefined)
+    return () => {
+      disposed = true
+      if (initialization) void initialization.dispose()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let disposed = false
+    let handle: { remove: () => Promise<void> } | undefined
+    void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive || disposed) return
+      document.dispatchEvent(new Event('iza-app-foreground'))
+      void reconcileAllNotifications()
+    }).then((listener) => disposed ? void listener.remove() : handle = listener)
+    return () => {
+      disposed = true
+      if (handle) void handle.remove()
+    }
+  }, [])
 
   useEffect(() => {
     document.documentElement.scrollTop = 0

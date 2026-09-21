@@ -6,6 +6,7 @@ import type { PlannedBlock } from '../features/planner/types'
 import type { StoredSession } from './db'
 import type { Task } from '../features/tasks/types'
 import { db, legacyKeys, migrateLegacyLocalStorage, replaceDatabaseState } from './db'
+import { reconcileAllNotifications } from './notifications'
 
 type BackupPayload = {
   format: 'iza-backup'
@@ -67,4 +68,5 @@ export async function restoreBackup(file: File): Promise<void> {
   localStorage.setItem(legacyKeys.COMPLETED_KEY, JSON.stringify(completed))
   localStorage.setItem(legacyKeys.PLANNER_KEY, JSON.stringify(parsed.plannedBlocks))
   localStorage.setItem(legacyKeys.TASKS_KEY, JSON.stringify(parsed.tasks))
+  await reconcileAllNotifications().catch(() => undefined)
 }

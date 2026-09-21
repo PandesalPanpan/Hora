@@ -6,6 +6,8 @@ afterEach(cleanup)
 const actions = { onReview:vi.fn(),start:vi.fn(),pause:vi.fn(),resume:vi.fn(),setTargetMinutes:vi.fn(),setNote:vi.fn(),acknowledgeTarget:vi.fn(),advancePomodoro:vi.fn(),finish:vi.fn() }
 it('filters without changing the selected ready activity, then explicitly selects', () => {
   render(<TimeflowPage active={null} completed={[]} elapsed={0} {...actions}/>)
+  expect(screen.getByRole('img', { name: 'Hora clock character' })).toBeInTheDocument()
+  expect(screen.queryByRole('img', { name: 'Iza clock character' })).not.toBeInTheDocument()
   expect(screen.queryByText('Selected activity')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button',{name:'Leisure'}))
   expect(screen.getByRole('button',{name:'Leisure'})).toHaveAttribute('aria-pressed','true')

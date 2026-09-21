@@ -1,20 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path android:fillColor="#EFD4CC" android:pathData="M32,79 C32,75 76,75 76,79 C76,83 32,83 32,79Z" />
-    <path android:fillColor="#F7CED8" android:strokeColor="#805149" android:strokeWidth="3"
-        android:strokeLineJoin="miter" android:pathData="M29,32 L35,20 L42,33 Z M66,33 L73,20 L81,32 Z" />
-    <path android:fillColor="#FFFAF8" android:strokeColor="#805149" android:strokeWidth="3"
-        android:pathData="M54,30 A27,27 0,1 0,54 84 A27,27 0,1 0,54 30Z" />
-    <path android:fillColor="#805149" android:pathData="M42,53 A2.5,2.5 0,1 0,42 58 A2.5,2.5 0,1 0,42 53Z M68,53 A2.5,2.5 0,1 0,68 58 A2.5,2.5 0,1 0,68 53Z" />
-    <path android:fillColor="#F6A7BB" android:fillAlpha="0.85"
-        android:pathData="M35,64 A4.5,4.5 0,1 0,35 73 A4.5,4.5 0,1 0,35 64Z M73,64 A4.5,4.5 0,1 0,73 73 A4.5,4.5 0,1 0,73 64Z" />
-    <path android:fillColor="#00000000" android:strokeColor="#DC4F7E" android:strokeWidth="4.5"
-        android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M54,57 L54,41 M54,57 L66,51" />
-    <path android:fillColor="#DC4F7E" android:pathData="M54,53 A4,4 0,1 0,54 61 A4,4 0,1 0,54 53Z" />
-    <path android:fillColor="#00000000" android:strokeColor="#805149" android:strokeWidth="2"
-        android:strokeLineCap="round" android:pathData="M48,69 C52,73 57,73 62,69" />
-</vector>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/hora_clock"
+    android:gravity="center" />

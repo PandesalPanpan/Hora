@@ -26,6 +26,7 @@ Implemented:
 - pause/resume accounting with persisted paused duration and foreground refresh.
 - interactive day/week planner with planned, completed, overlapping, and live Timeflow states.
 - local-first lightweight task creation and weekly actual-time reporting.
+- native Android timer milestone notifications with exact-alarm fallback, notification channels, and planned-block reminder reconciliation.
 
 Run it with:
 
@@ -44,7 +45,7 @@ Emulator verification is now complete: a hardware-accelerated Pixel 8 AVD using 
 
 This slice deliberately uses versioned browser `localStorage` rather than Dexie. It proves the local-first workflow with the smallest persistence layer; migration to IndexedDB should happen when session editing, intervals, tasks, or sync introduce richer queries and transactional writes.
 
-Next recommended increment: move richer records to IndexedDB/Dexie, add editable session intervals, and connect native Android goal notifications.
+Next recommended increment: move richer records to IndexedDB/Dexie, add editable session intervals, and validate notification behavior on physical devices.
 
 ---
 

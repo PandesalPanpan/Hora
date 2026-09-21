@@ -38,7 +38,7 @@ button { touch-action: manipulation; }
 .timer-column > h1 { margin: 0 4px 10px; font: 700 19px/1.35 'Poppins', sans-serif; }
 .ready-timer-card, .live-timer-card, .pomodoro-card { min-height: 224px; border: 1.5px solid var(--hora-line); border-radius: 27px; position: relative; overflow: hidden; background: white; box-shadow: 0 6px 16px rgba(122,83,74,.07); }
 .ready-timer-card { padding: 48px 17px 10px 14px; display: grid; grid-template-columns: 102px 1fr; align-items: center; gap: 8px; }
-.ready-timer-card > img { width: 102px; height: 102px; object-fit: contain; }
+.ready-timer-card > img { width: min(117px, 31vw); height: auto; aspect-ratio: 1; object-fit: contain; }
 .ready-controls { min-width: 0; display: flex; flex-direction: column; align-items: center; }
 .timer-digits { font: 700 clamp(30px, 9vw, 37px)/1 'Poppins', sans-serif; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ready-controls > small, .live-timer-card > small { margin-top: 10px; color: var(--hora-muted); font-size: 11px; font-weight: 600; }
@@ -49,10 +49,14 @@ button { touch-action: manipulation; }
 .start-flowtime svg { width: 14px; }
 .live-timer-card { min-height: 304px; padding: 28px 17px 17px; display: flex; flex-direction: column; align-items: center; }
 .live-kicker { align-self: stretch; color: #5fae83; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-.live-timer-card > img { width: 101px; height: 101px; margin-top: -2px; object-fit: contain; }
+.live-timer-card > img { width: min(117px, 31vw); height: auto; aspect-ratio: 1; margin-top: -2px; object-fit: contain; }
 .live-timer-card .timer-digits { margin-top: 0; }
 .active-label { min-width: 132px; height: 32px; margin: 10px 0 14px; padding: 6px 14px; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--hora-mint); font-size: 12px; font-weight: 700; }
 .active-label i { width: 9px; height: 9px; border-radius: 50%; }
+.active-goal-controls { width: 100%; margin: -5px 0 12px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 5px; color: var(--hora-muted); font-size: 10px; font-weight: 700; }
+.active-goal-controls span { margin-right: 3px; }
+.active-goal-controls button { min-width: 44px; min-height: 32px; padding: 5px 8px; border: 1px solid var(--hora-line); border-radius: 16px; color: var(--hora-muted); background: #fff9f6; font-size: 10px; font-weight: 700; cursor: pointer; }
+.active-goal-controls button.selected { color: white; border-color: var(--hora-orange); background: var(--hora-orange); }
 .timer-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .timer-actions button { min-height: 44px; padding: 8px 12px; border: 1.4px solid #f7b7c4; border-radius: 22px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--hora-pink); background: white; font-size: 12px; font-weight: 700; cursor: pointer; }
 .timer-actions button.primary { border-color: var(--hora-pink); color: white; background: var(--hora-pink); }
@@ -288,7 +292,7 @@ button { touch-action: manipulation; }
   .bottom-nav { display: none; }
   .timer-column > h1 { font-size: 23px; }
   .ready-timer-card { min-height: 362px; padding: 58px 40px 28px; grid-template-columns: 155px 1fr; }
-  .ready-timer-card > img { width: 126px; height: 126px; }
+.ready-timer-card > img { width: 117px; height: auto; }
   .ready-controls .timer-digits { font-size: 44px; }
   .start-flowtime { width: 278px; min-height: 47px; border-radius: 24px; }
   .vibe-picker { padding-top: 18px; }
@@ -299,7 +303,7 @@ button { touch-action: manipulation; }
 @media (max-width: 360px) {
   .content-panel { padding-inline: 14px; }
   .ready-timer-card { grid-template-columns: 88px 1fr; padding-inline: 10px; }
-  .ready-timer-card > img { width: 88px; height: 88px; }
+.ready-timer-card > img { width: 88px; height: auto; }
   .timer-digits { font-size: 28px; }
   .goal-row { gap: 4px; }
   .vibe-picker > div:first-of-type { gap: 4px; }

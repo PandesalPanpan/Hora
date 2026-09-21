@@ -1,13 +1,21 @@
 import type { PlannedBlock } from './types'
 
 const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-export function expandRecurringBlock(block: PlannedBlock): PlannedBlock[] {
+
+export type RecurrenceExpansionOptions = {
+  from?: Date
+  until?: Date
+}
+
+export function expandRecurringBlock(block: PlannedBlock, options: RecurrenceExpansionOptions | number = {}): PlannedBlock[] {
   if (!block.recurrence) return [block]
+  const expansion = typeof options === 'number' ? {} : options
   const start = new Date(block.startedAt); const end = new Date(block.finishedAt)
   const finalDate = new Date(`${block.recurrence.endsOn}T23:59:59`); const result: PlannedBlock[] = []
-  for (const day = new Date(start); day <= finalDate; day.setDate(day.getDate() + 1)) {
+  for (const day = new Date(start); day <= finalDate && (!expansion.until || day <= expansion.until); day.setDate(day.getDate() + 1)) {
     if (block.recurrence.frequency === 'weekdays' && !block.recurrence.weekdays?.includes(day.getDay())) continue
     const occurrenceStart = new Date(day); occurrenceStart.setHours(start.getHours(), start.getMinutes(), start.getSeconds(), start.getMilliseconds())
+    if (expansion.from && occurrenceStart < expansion.from) continue
     const key = dateKey(occurrenceStart)
     if (block.excludedDates?.includes(key)) continue
     const occurrenceEnd = new Date(day); occurrenceEnd.setHours(end.getHours(), end.getMinutes(), end.getSeconds(), end.getMilliseconds()); if (occurrenceEnd <= occurrenceStart) occurrenceEnd.setDate(occurrenceEnd.getDate() + 1)

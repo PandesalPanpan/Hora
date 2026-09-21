@@ -6,7 +6,7 @@ import { todayFeed } from '../features/planner/todayFeed'
 import { localDateKey } from '../features/reports/period'
 import { CalendarDays, ChevronRight, Pause, Play, SlidersHorizontal, Square } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import clockMascot from '../assets/iza-clock.svg'
+import clockMascot from '../assets/hora-clock.png'
 import { activityGroups, categoryColors, type ActivityGroup } from '../features/activities/catalog'
 import type { ActiveSession, Activity, CompletedSession } from '../features/timer/types'
 import type { TimerStartOptions } from '../features/timer/useTimer'
@@ -129,10 +129,15 @@ export function TimeflowPage({ onReview, active, completed, elapsed, start, paus
           ) : active ? (
             <section className="live-timer-card" aria-label="Timer">
               <span className="live-kicker">{goalReached ? 'Goal reached · keep going' : active.status === 'paused' ? 'Flowtime paused' : 'Live flowtime'}</span>
-              <img src={clockMascot} alt="Iza clock character" />
+<img src={clockMascot} alt="Hora clock character" />
               <strong className="timer-digits" aria-label={`${fullClock(elapsed)} elapsed`}>{fullClock(elapsed)}</strong>
               <small>started {timeFormatter.format(new Date(active.startedAt))}</small>
               <span className="active-label"><i style={{ background: currentActivity.color }} />{currentActivity.name}</span>
+              <div className="active-goal-controls" aria-label="Time goal">
+                <span>{active.targetMinutes ? `Goal ${active.targetMinutes} min` : 'No time goal'}</span>
+                {[25, 30, 60].map((minutes) => <button key={minutes} type="button" className={active.targetMinutes === minutes ? 'selected' : ''} onClick={() => setTargetMinutes(minutes)} aria-label={`Change goal to ${minutes} minutes`}>{minutes}</button>)}
+                {active.targetMinutes && <button type="button" onClick={() => setTargetMinutes(null)}>Remove goal</button>}
+              </div>
               <div className="timer-actions">
                 <button type="button" onClick={active.status === 'paused' ? resume : pause} aria-label={active.status === 'paused' ? 'Resume session' : 'Pause session'}>{active.status === 'paused' ? <Play fill="currentColor" /> : <Pause />} {active.status === 'paused' ? 'Resume' : 'Pause'}</button>
                 <button className="primary" type="button" onClick={finish} aria-label="Finish session"><Square fill="currentColor" />Stop & log</button>
@@ -140,7 +145,7 @@ export function TimeflowPage({ onReview, active, completed, elapsed, start, paus
             </section>
           ) : (
             <section className="ready-timer-card" aria-label="Timer" style={{ borderColor: selectedPreset.color }}>
-              <img src={clockMascot} alt="Iza clock character" />
+<img src={clockMascot} alt="Hora clock character" />
               <div className="ready-controls">
                 <strong className="timer-digits">00:00:00</strong>
                 <small>minimum goal</small>

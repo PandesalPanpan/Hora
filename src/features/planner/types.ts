@@ -8,6 +8,8 @@ export type PlannedBlock = {
   color: string
   startedAt: string
   finishedAt: string
+  /** Minutes before the occurrence start; absent/null means no reminder. */
+  reminderMinutesBefore?: number | null
   taskId?: string
   activityId?: string
   recurrenceSeriesId?: string

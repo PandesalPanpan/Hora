@@ -17,6 +17,7 @@ import { sessionSeconds } from '../../lib/time'
 import { db, legacyKeys, migrateLegacyLocalStorage } from '../../lib/db'
 import './Planner.css'
 import { changeOccurrence, expandRecurringBlock } from './recurrence'
+import { reconcilePlannedBlockReminders } from '../../lib/notifications'
 
 type PlannerProps = {
   active: ActiveSession | null
@@ -52,6 +53,7 @@ type DraftBlock = {
   repeat: 'none' | 'daily' | 'weekdays'
   weekdays: number[]
   endsOn: string
+  reminderMinutesBefore: number | null
 }
 
 const PLANNER_KEY = legacyKeys.PLANNER_KEY
@@ -117,6 +119,7 @@ function draftFor(date: Date, hour = 9): DraftBlock {
     repeat: 'none',
     weekdays: [1, 2, 3, 4, 5],
     endsOn: dateKey(addDays(date, 7)),
+    reminderMinutesBefore: null,
   }
 }
 
@@ -237,6 +240,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
       color: categories[draft.category],
       startedAt: start.toISOString(),
       finishedAt: end.toISOString(),
+      reminderMinutesBefore: draft.reminderMinutesBefore ?? undefined,
       recurrenceSeriesId: draft.repeat === 'none' ? undefined : crypto.randomUUID(),
       recurrence: draft.repeat === 'none' ? undefined : { frequency: draft.repeat === 'daily' ? 'daily' : 'weekdays', weekdays: draft.repeat === 'weekdays' ? draft.weekdays : undefined, endsOn: draft.endsOn },
     }
@@ -247,6 +251,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
       const replacements = source ? changeOccurrence(source, editingBlock?.occurrenceDate ?? draft.date, editScope, block) : [block]
       await db.transaction('rw', db.plannedBlocks, async () => { if (source) await db.plannedBlocks.delete(source.id); await db.plannedBlocks.bulkPut(replacements) })
       setPlanned(await db.plannedBlocks.toArray()); setDraft(null); setEditingBlock(null); setInspected(null); setSaveError('')
+      void reconcilePlannedBlockReminders(Date.now(), { requestPermission: Boolean(block.reminderMinutesBefore !== undefined) })
     } catch { setSaveError('This block could not be saved. Try again.') } finally { saveLock.current = false; setSaving(false) }
   }
 
@@ -255,7 +260,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
     if (!inspectBlock) return
     const start = new Date(inspectBlock.startedAt), end = new Date(inspectBlock.finishedAt)
     setEditingBlock(inspectBlock); setEditScope('one'); setInspected(null)
-    setDraft({ ...draftFor(start), activityId: inspectBlock.activityId, title: inspectBlock.title, note: inspectBlock.note ?? '', category: inspectBlock.category, startTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`, endTime: `${pad(end.getHours())}:${pad(end.getMinutes())}`, repeat: inspectBlock.recurrence?.frequency ?? 'none', weekdays: inspectBlock.recurrence?.weekdays ?? [1,2,3,4,5], endsOn: inspectBlock.recurrence?.endsOn ?? dateKey(start) })
+    setDraft({ ...draftFor(start), activityId: inspectBlock.activityId, title: inspectBlock.title, note: inspectBlock.note ?? '', category: inspectBlock.category, startTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`, endTime: `${pad(end.getHours())}:${pad(end.getMinutes())}`, repeat: inspectBlock.recurrence?.frequency ?? 'none', weekdays: inspectBlock.recurrence?.weekdays ?? [1,2,3,4,5], endsOn: inspectBlock.recurrence?.endsOn ?? dateKey(start), reminderMinutesBefore: inspectBlock.reminderMinutesBefore ?? null })
   }
   const deletePlanned = async () => {
     if (!inspectBlock || saving) return
@@ -267,6 +272,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
       const replacements = changeOccurrence(source, inspectBlock.occurrenceDate ?? dateKey(new Date(inspectBlock.startedAt)), editScope)
       await db.transaction('rw', db.plannedBlocks, async () => { await db.plannedBlocks.delete(source.id); if (replacements.length) await db.plannedBlocks.bulkPut(replacements) })
       setPlanned(await db.plannedBlocks.toArray()); setInspected(null); setDeleteConfirm(false); setSaveError('')
+      void reconcilePlannedBlockReminders()
     } catch { setSaveError('This block could not be deleted. Try again.') } finally { saveLock.current = false; setSaving(false) }
   }
 
@@ -305,7 +311,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
-      void db.plannedBlocks.put(resized).catch(() => {
+      void db.plannedBlocks.put(resized).then(() => reconcilePlannedBlockReminders()).catch(() => {
         setPlanned(current => current.map(block => block.id === blockId ? original : block))
         setSaveError('The resized block could not be saved. Try again.')
       })
@@ -454,6 +460,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
             <label>Repeat<select value={draft.repeat} onChange={(event) => setDraft({ ...draft, repeat: event.target.value as DraftBlock['repeat'] })}><option value="none">Does not repeat</option><option value="daily">Every day</option><option value="weekdays">Selected weekdays</option></select></label>
             {draft.repeat === 'weekdays' && <fieldset className="weekday-picker"><legend>Repeat on</legend>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, day) => <button type="button" key={day} aria-pressed={draft.weekdays.includes(day)} onClick={() => setDraft({ ...draft, weekdays: draft.weekdays.includes(day) ? draft.weekdays.filter((item) => item !== day) : [...draft.weekdays, day] })}>{label}</button>)}</fieldset>}
             {draft.repeat !== 'none' && <label>Ends on<input required type="date" min={draft.date} value={draft.endsOn} onChange={(event) => setDraft({ ...draft, endsOn: event.target.value })} /></label>}
+            <label>Remind me<select aria-label="Remind me" value={draft.reminderMinutesBefore === null ? '' : String(draft.reminderMinutesBefore)} onChange={(event) => setDraft({ ...draft, reminderMinutesBefore: event.target.value === '' ? null : Number(event.target.value) })}><option value="">No reminder</option><option value="0">At start time</option><option value="5">5 minutes before</option><option value="10">10 minutes before</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option></select></label>
             {saveError && <p role="alert">{saveError}</p>}
             <div className="popover-actions"><button type="submit" disabled={saving}>Save as planned</button><button type="button" disabled={Boolean(active) || !draft.title.trim()} onClick={startViaTimeflow}><TimerReset /> Start via Timeflow</button></div>
           </form>

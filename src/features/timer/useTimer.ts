@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { localStore } from '../../lib/localStore'
 import { activeSessionSeconds } from '../../lib/time'
 import type { Activity, ActiveSession, CompletedSession } from './types'
-import { cancelMilestoneNotification, scheduleMilestoneNotification } from '../../lib/notifications'
+import { cancelTimeflowMilestone, scheduleTimeflowMilestone } from '../../lib/notifications'
 
 export type TimerStartOptions = {
   taskId?: string
@@ -43,12 +43,14 @@ export function useTimer() {
     const refresh = () => setNow(Date.now())
     document.addEventListener('visibilitychange', refresh)
     window.addEventListener('focus', refresh)
-    const reload = () => { void localStore.hydrate().then(state => setCompleted(state.completed)) }
+    const reload = () => { void localStore.hydrate().then(state => { setActive(state.active); setCompleted(state.completed); setNow(Date.now()) }) }
+    document.addEventListener('iza-app-foreground', reload)
     window.addEventListener('iza-data-changed', reload)
     return () => {
       document.removeEventListener('visibilitychange', refresh)
       window.removeEventListener('focus', refresh)
       window.removeEventListener('iza-data-changed', reload)
+      document.removeEventListener('iza-app-foreground', reload)
     }
   }, [])
 
@@ -67,7 +69,7 @@ export function useTimer() {
     localStore.setActive(session)
     setActive(session)
     setNow(Date.now())
-    void scheduleMilestoneNotification(session)
+    void scheduleTimeflowMilestone(session, 0, { requestPermission: true })
   }, [active])
 
   const pause = useCallback(() => {
@@ -75,7 +77,7 @@ export function useTimer() {
     const session: ActiveSession = { ...active, status: 'paused', pausedAt: new Date().toISOString() }
     localStore.setActive(session)
     setActive(session)
-    void cancelMilestoneNotification(session.id)
+    void cancelTimeflowMilestone(session.id)
   }, [active])
 
   const resume = useCallback(() => {
@@ -90,7 +92,7 @@ export function useTimer() {
     localStore.setActive(session)
     setActive(session)
     setNow(Date.now())
-    void scheduleMilestoneNotification(session, activeSessionSeconds(session))
+    void scheduleTimeflowMilestone(session, activeSessionSeconds(session), { requestPermission: true })
   }, [active])
 
   const setTargetMinutes = useCallback((targetMinutes: number | null) => {
@@ -98,7 +100,7 @@ export function useTimer() {
     const session: ActiveSession = { ...active, targetMinutes, targetAcknowledged: false }
     localStore.setActive(session)
     setActive(session)
-    void scheduleMilestoneNotification(session, activeSessionSeconds(session))
+    void scheduleTimeflowMilestone(session, activeSessionSeconds(session), { requestPermission: true })
   }, [active])
 
   const setNote = useCallback((note: string) => {
@@ -113,7 +115,7 @@ export function useTimer() {
     const session = { ...active, targetAcknowledged: true }
     localStore.setActive(session)
     setActive(session)
-    void cancelMilestoneNotification(session.id)
+    void cancelTimeflowMilestone(session.id)
   }, [active])
 
   const finish = useCallback((): CompletedSession | undefined => {
@@ -131,7 +133,7 @@ export function useTimer() {
     }
     const sessions = localStore.addCompleted(session)
     localStore.setActive(null)
-    void cancelMilestoneNotification(active.id)
+    void cancelTimeflowMilestone(active.id)
     setCompleted(sessions)
     setActive(null)
     return session
@@ -169,7 +171,7 @@ export function useTimer() {
     const nextRound = current.phase === 'break' ? current.round + 1 : current.round
     const cycleComplete = current.phase === 'break' && current.round >= (current.totalRounds ?? 4)
     const sessions = localStore.addCompleted(completedSession)
-    void cancelMilestoneNotification(active.id)
+    void cancelTimeflowMilestone(active.id)
     setCompleted(sessions)
 
     if (cycleComplete) {
@@ -192,7 +194,7 @@ export function useTimer() {
     localStore.setActive(next)
     setActive(next)
     setNow(Date.now())
-    void scheduleMilestoneNotification(next)
+    void scheduleTimeflowMilestone(next, 0, { requestPermission: true })
     return completedSession
   }, [active])
 
