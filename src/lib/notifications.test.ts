@@ -13,6 +13,7 @@ vi.mock('@capacitor/core', () => ({
     isNativePlatform: () => native.value,
     getPlatform: () => 'android',
   },
+  registerPlugin: vi.fn(() => null),
 }))
 
 vi.mock('@capacitor/local-notifications', () => ({

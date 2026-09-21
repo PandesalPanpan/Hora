@@ -5,6 +5,7 @@ import { activeSessionSeconds } from './time'
 import { db, loadDatabaseState, migrateLegacyLocalStorage } from './db'
 import { expandRecurringBlock } from '../features/planner/recurrence'
 import type { PlannedBlock } from '../features/planner/types'
+import { cancelNativeTimerMilestone, isNativeTimerBridgeAvailable, syncNativeTimer } from '../features/timer/native'
 
 const OWNER = 'iza'
 const PLANNER_WINDOW_DAYS = 90
@@ -12,6 +13,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 export const notificationChannels = {
   timer: 'iza-timer-alerts',
+  activeTimer: 'iza-active-timer',
   planner: 'iza-planner-reminders',
 } as const
 
@@ -214,6 +216,29 @@ async function scheduleTimeflowNotification(session: ActiveSession, elapsedSecon
   if (!Capacitor.isNativePlatform()) return false
   const id = timerId(session)
   const hasTarget = typeof session.targetMinutes === 'number' && session.targetMinutes > 0
+
+  // Android's native timer controller owns the ongoing card and its one-shot
+  // milestone fallback. Keep Capacitor's timer alarms for iOS and older builds,
+  // but let the native bridge request permission and refresh the card here so a
+  // start cannot race the Android 13 notification prompt.
+  if (isNativeTimerBridgeAvailable()) {
+    await cancelIds([id])
+    let permitted = false
+    try {
+      permitted = await notificationPermission(options.requestPermission ?? false)
+    } catch {
+      return false
+    }
+    if (!permitted) return false
+    try {
+      await syncNativeTimer(session)
+      dispatchStatusChanged()
+      return true
+    } catch {
+      return false
+    }
+  }
+
   if (!hasTarget || session.status === 'paused' || session.targetAcknowledged) {
     await cancelIds([id])
     return false
@@ -257,6 +282,7 @@ export async function scheduleTimeflowMilestone(session: ActiveSession, elapsedS
 }
 
 export async function cancelTimeflowMilestone(sessionId: string): Promise<void> {
+  await cancelNativeTimerMilestone(sessionId).catch(() => undefined)
   await cancelIds([timeflowNotificationId(sessionId), pomodoroNotificationId(sessionId)])
 }
 
@@ -362,6 +388,12 @@ export async function reconcileTimeflowNotifications(active?: ActiveSession | nu
   }
   const pending = await pendingNotifications()
   const owned = pending.filter(isOwnedTimer)
+
+  if (isNativeTimerBridgeAvailable()) {
+    await cancelIds(owned.map(item => item.id))
+    return
+  }
+
   const expected = active && active.status !== 'paused' && !active.targetAcknowledged && typeof active.targetMinutes === 'number'
     && active.targetMinutes * 60 > activeSessionSeconds(active, nowMs) ? active : null
   const expectedId = expected ? timerId(expected) : null

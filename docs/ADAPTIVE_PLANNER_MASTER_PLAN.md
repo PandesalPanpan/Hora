@@ -1,6 +1,6 @@
 # Adaptive Planner — Master Plan
 
-**Status:** In development — Sprint 1 vertical slice working locally  
+**Status:** In development — local-first Android timer and planner notification slice working
 **Primary user:** Student / personal productivity user  
 **Product type:** Adaptive time-blocking + time-tracking planner  
 **Initial platforms:** Android app + Web/PWA  
@@ -27,6 +27,8 @@ Implemented:
 - interactive day/week planner with planned, completed, overlapping, and live Timeflow states.
 - local-first lightweight task creation and weekly actual-time reporting.
 - native Android timer milestone notifications with exact-alarm fallback, notification channels, and planned-block reminder reconciliation.
+- native Android active-session notification with a system chronometer, real Pause/Resume/Finish controls, explicit Pomodoro phase actions, and a versioned continuity snapshot that reconciles native actions into Dexie.
+- Android 16 promoted-ongoing notification requested as a progressive enhancement; the base active notification does not depend on promotion.
 
 Run it with:
 
@@ -39,7 +41,7 @@ Verified with `npm test`, `npm run lint`, and `npm run build`.
 
 Android packaging is configured with application ID `com.izatime.tracker`. Use `npm run android:open` after installing Android Studio and an Android SDK. Native device/emulator verification remains pending until those tools are present on the development machine.
 
-The current development machine now has Android Studio, an Android 36 SDK, platform/build tools, and a Java 21 build runtime installed on `Y:`. The generated Capacitor project successfully produces a debug APK with `npm run android:apk`; physical-device testing remains pending.
+The current development machine now has Android Studio, an Android 36 SDK, platform/build tools, and a Java 21 build runtime installed on `Y:`. The generated Capacitor project successfully produces a debug APK with `npm run android:apk`.
 
 Emulator verification is now complete: a hardware-accelerated Pixel 8 AVD using the stable Android 16/API 36 Google Play `x86_64` image boots successfully, and the Capacitor debug APK installs and launches as `com.izatime.tracker`. Use `npm run android:emulator` to start it.
 
@@ -197,7 +199,7 @@ If Android suspends or kills the app, the timer must still reconstruct the corre
 - Improved Android native integration
 - Home-screen experience
 - Native notifications
-- Potential Android foreground service
+- Active-session notification controls and native recovery
 
 ### Later
 
@@ -546,7 +548,7 @@ The current running session must not exist only inside React component state.
 
 ### 8.4 Notifications
 
-Android target notifications should use native Capacitor local notifications.
+Planner reminders and non-Android timer targets use Capacitor Local Notifications for one-shot delivery. On Android, the active-session plugin owns the active card and coordinates its one-shot milestone alert because it needs real notification actions, a system chronometer, and continuity while the WebView is asleep.
 
 Example:
 
@@ -558,33 +560,17 @@ Keep going or finish when you're ready.
 
 The notification must not depend on the React WebView remaining active.
 
+The active card uses one stable notification ID, a quiet channel, `setOngoing(true)`, `setOnlyAlertOnce(true)`, and Android's chronometer. Running Flowtime offers Pause and Finish; paused Flowtime offers Resume and Finish. Pomodoro phase changes are never automatic: after a reached focus/break milestone the card offers an explicit Start break/Start focus action.
+
+The small native continuity record is only a recovery/action mirror for the active session. It is revisioned, native actions win over older Dexie active state, and successful reconciliation acknowledges pending actions. Completed native sessions are upserted by session ID so process death cannot create duplicates.
+
 ---
 
-### 8.5 Foreground service
+### 8.5 Foreground service decision
 
-Do not implement this immediately.
+Beta feedback showed that persistent controls provide real value, but the required experience does not need a foreground service. Android owns the active notification's chronometer and explicit `BroadcastReceiver` actions, while timestamps and the continuity snapshot own timer truth. This keeps the battery cost event-driven and avoids adding a service that only exists to tick once per second.
 
-Add a native Android foreground service only if product testing shows that the user benefits from:
-
-- persistent active-session notification,
-- lock-screen style controls,
-- Pause button in the notification,
-- Finish button in the notification,
-- stronger Android lifecycle behavior.
-
-Likely architecture:
-
-```text
-React
-  ↓
-Capacitor bridge
-  ↓
-small Kotlin native plugin
-  ↓
-Android Foreground Service
-```
-
-Do not rewrite the full app in Kotlin.
+Revisit a foreground service only if emulator and device testing show that a normal ongoing notification and receivers fail to provide reliable continuity. If that happens, use only the Android service type that matches the proven workload; a productivity timer must not claim media, location, health, or phone-call behavior.
 
 ---
 
@@ -1033,20 +1019,19 @@ Those become backlog items.
 
 ---
 
-## Sprint 7 — Android native enhancements
+## Sprint 7 — Android active timer controls
 
-Only after beta evidence.
+Implemented after validated beta feedback:
 
-Potential features:
+- ongoing active-session notification;
+- native chronometer without per-second JavaScript/native work;
+- notification Pause, Resume, and Finish actions;
+- explicit Pomodoro Start break/Start focus actions;
+- native continuity snapshot and deterministic Dexie reconciliation;
+- respectful notification dismissal handling;
+- Android 16 promoted-ongoing request as an optional enhancement.
 
-- ongoing active-session notification,
-- notification Pause action,
-- notification Finish action,
-- Android foreground service,
-- app shortcuts,
-- home-screen widget.
-
-Do not add these only because they are technically interesting.
+App shortcuts and a home-screen widget remain separate follow-up surfaces. A foreground service is not part of the current implementation.
 
 ---
 
@@ -1268,7 +1253,7 @@ The app should:
 - persist immediately,
 - avoid per-second server writes,
 - avoid continuous network synchronization,
-- avoid a foreground service unless it provides demonstrated user value.
+- avoid a foreground service when a system chronometer and event-driven receivers provide the demonstrated user value.
 
 ---
 
@@ -1321,7 +1306,7 @@ Current decisions:
 11. React + TypeScript is preferred over Flutter.
 12. Capacitor is preferred for Android packaging/native bridging.
 13. Supabase is introduced only after the local core loop works.
-14. Foreground service is deferred until real testing justifies it.
+14. Active notification controls are implemented without a foreground service; a service remains conditional on evidence that this architecture is insufficient.
 
 ---
 

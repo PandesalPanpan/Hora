@@ -103,6 +103,15 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const onNativeCompletion = (event: Event) => {
+      const session = (event as CustomEvent<CompletedSession>).detail
+      if (session?.id && session.finishedAt) setCompletedReview(session)
+    }
+    window.addEventListener('iza-native-completion', onNativeCompletion)
+    return () => window.removeEventListener('iza-native-completion', onNativeCompletion)
+  }, [])
+
+  useEffect(() => {
     document.documentElement.scrollTop = 0
     if (appCanvasRef.current) appCanvasRef.current.scrollTop = 0
     const names: Record<AppRoute, string> = { '/today': 'Today', '/history': 'History', '/tasks': 'Tasks', '/planner': 'Planner', '/reports': 'Stats', '/settings': 'Me', '/changelog': 'What’s new' }

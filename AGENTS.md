@@ -54,7 +54,8 @@ The book guides interaction clarity; it is not a replacement visual system. When
 - Keep the application web-first. Add native code only for capabilities that require it, such as local notifications, foreground services, widgets, or Android shortcuts.
 - Recalculate timer state from persisted timestamps whenever the app returns to the foreground.
 - Goal notifications must use Capacitor local notifications and must not depend on the WebView remaining active.
-- Do not add a foreground service until device testing shows that ongoing notification controls materially improve the experience.
+- Active-session controls use the native `TimerNotification` bridge, a system chronometer, explicit action receivers, and a small versioned continuity snapshot; they must not use per-second JS/native work.
+- The active-session notification is not a foreground service. Add a foreground service only if device testing proves the notification/receiver architecture cannot provide reliable user-visible continuity, and document the Android 14+ service type before doing so.
 - After web changes that affect the APK, run `npm run android:sync`. For device-sensitive work, verify on the configured emulator in addition to browser checks.
 
 ## Scope discipline

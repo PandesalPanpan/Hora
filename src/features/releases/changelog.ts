@@ -13,6 +13,18 @@ export const currentVersionCode = packageMetadata.androidVersionCode
 
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: '0.2.0',
+    date: '2026-09-21',
+    title: 'A timer that stays with you',
+    summary: 'Active Android sessions stay visible and actionable even when Hora is in the background.',
+    changes: [
+      'The active timer now has one quiet Android notification with a system chronometer, so elapsed and remaining time stay accurate without per-second app updates.',
+      'Pause, Resume, and Finish are available from the notification, and Pomodoro phase changes are explicit with Start break or Start focus actions.',
+      'Timer actions are saved locally first and recovered through a versioned continuity snapshot when the WebView is paused, reclaimed, or reopened.',
+      'Dismissing the notification never pauses or finishes a session, and native milestone fallback keeps the active card current while Hora is asleep.',
+    ],
+  },
+  {
     version: '0.1.2',
     date: '2026-09-21',
     title: 'Reminders that stay with you',

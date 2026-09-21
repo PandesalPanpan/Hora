@@ -19,7 +19,7 @@ The manifest format is:
 
 ```json
 {
-  "versionCode": 2,
+  "versionCode": 4,
   "versionName": "0.2.0",
   "apk": "app-release.apk",
   "sha256": "<64 lowercase hexadecimal characters>"
@@ -103,8 +103,8 @@ npm run release -- release --initial --dry-run
 npm run release -- release --initial
 
 # Later releases:
-npm run release -- release --version 0.2.0 --version-code 2 --dry-run
-npm run release -- release --version 0.2.0 --version-code 2
+npm run release -- release --version 0.2.0 --version-code 4 --dry-run
+npm run release -- release --version 0.2.0 --version-code 4
 ```
 
 The command requires a clean `main` worktree, checks that the version code is higher than the current one, runs tests/lint/web build, updates `package.json` and `package-lock.json`, creates the matching annotated tag, and pushes the commit and tag. The tag starts `.github/workflows/android-release.yml`; it does not upload an unsigned local APK. Do not use `--allow-dirty` or bypass the checks: release only after the intended product changes are committed.

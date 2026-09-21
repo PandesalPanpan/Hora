@@ -95,3 +95,7 @@ An optional note attached to a planned block. It describes the intended block an
 ## Android release version
 
 The version pair published with an installable Android APK: a human-readable version name and a monotonically increasing Android version code. The version code determines whether an APK is a newer update; the version name is for display and release communication.
+
+## Active timer notification
+
+The Android notification for the one currently active timer session. It is an ongoing, quiet notification with a system chronometer and real Pause/Resume/Finish controls. It is separate from one-shot milestone alerts and planned-block reminders. The timer continues if the notification is dismissed; dismissal never means pause or finish. Native action state is kept in a small versioned continuity record and reconciled into Dexie before Hora presents a stale active session. Native Finish uses the action timestamp and is deduplicated by session ID. Normal Android Force stop is an OS limitation: receivers and alarms may remain blocked until Hora is launched again.

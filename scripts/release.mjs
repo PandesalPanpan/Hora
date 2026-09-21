@@ -55,7 +55,7 @@ function usage() {
   npm run release:doctor
   npm run release -- release --initial --dry-run
   npm run release -- release --initial
-  npm run release -- release --version 0.2.0 --version-code 2 [--dry-run]
+  npm run release -- release --version 0.2.0 --version-code 4 [--dry-run]
 
 The release command must run from a clean main branch. It updates package metadata,
 runs the web checks, commits the release version, creates v<version>, and pushes the

@@ -26,11 +26,15 @@ export const localStore = {
   setActive(session: ActiveSession | null): void {
     if (session) localStorage.setItem(ACTIVE_KEY, JSON.stringify(session))
     else localStorage.removeItem(ACTIVE_KEY)
-    void db.transaction('rw', db.sessions, async () => {
+    void this.persistActive(session).catch(() => undefined)
+  },
+
+  async persistActive(session: ActiveSession | null): Promise<void> {
+    await db.transaction('rw', db.sessions, async () => {
       const existing = await db.sessions.where('status').anyOf('running', 'paused').primaryKeys()
       if (existing.length) await db.sessions.bulkDelete(existing)
       if (session) await db.sessions.put(session)
-    }).catch(() => undefined)
+    })
   },
 
   getCompleted(): CompletedSession[] {
@@ -38,10 +42,14 @@ export const localStore = {
   },
 
   addCompleted(session: CompletedSession): CompletedSession[] {
-    const sessions = [session, ...this.getCompleted()]
+    const sessions = [session, ...this.getCompleted().filter((item) => item.id !== session.id)]
     localStorage.setItem(COMPLETED_KEY, JSON.stringify(sessions))
     void db.sessions.put(session).catch(() => undefined)
     return sessions
+  },
+
+  async persistCompleted(session: CompletedSession): Promise<void> {
+    await db.sessions.put(session)
   },
 
   async updateCompleted(id: string, patch: Partial<Pick<CompletedSession, 'activity' | 'note' | 'mood' | 'startedAt' | 'finishedAt'>>): Promise<CompletedSession[]> {

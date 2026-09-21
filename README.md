@@ -45,7 +45,7 @@ Android sideload updates use the public GitHub Releases API for `PandesalPanpan/
 
 The release and signing contract is documented in [docs/ANDROID_UPDATES.md](docs/ANDROID_UPDATES.md). Before publishing a release, configure the documented GitHub Actions secrets; never commit the release keystore or its passwords.
 
-Once the signing secrets are configured and `gh auth login` has been completed, use `npm run release:doctor` to verify the release connection and `npm run release -- release --version 0.2.0 --version-code 2` to tag and start a signed GitHub release. The command requires a clean `main` worktree.
+Once the signing secrets are configured and `gh auth login` has been completed, use `npm run release:doctor` to verify the release connection and `npm run release -- release --version 0.2.0 --version-code 4` to tag and start a signed GitHub release. The command requires a clean `main` worktree.
 
 ### Installed development emulator
 
@@ -81,6 +81,7 @@ GitHub Actions runs these checks, plus an Android debug APK build, for pull requ
 - Optional planned-block reminders with recurring occurrence support
 - Pause and resume with paused time excluded from actual duration
 - Native Android Timeflow and Pomodoro milestone alerts with precise-alarm fallback
+- Native ongoing active-timer notification with chronometer, Pause/Resume/Finish, and Pomodoro phase controls
 - Notification status, permission controls, test alerts, and typed notification tap routing
 - URL-backed Timeflow, Tasks, Planner, Reports, and Settings screens
 - Hora clock character PNG in the primary timer
@@ -88,4 +89,4 @@ GitHub Actions runs these checks, plus an Android debug APK build, for pull requ
 - Unit and component coverage for duration and recovery
 - Capacitor Android shell and repeatable build/sync scripts
 
-The remaining product roadmap is in [docs/ADAPTIVE_PLANNER_MASTER_PLAN.md](docs/ADAPTIVE_PLANNER_MASTER_PLAN.md).
+The active Android timer architecture and recovery rules are in [docs/ANDROID_ACTIVE_TIMER.md](docs/ANDROID_ACTIVE_TIMER.md). The remaining product roadmap is in [docs/ADAPTIVE_PLANNER_MASTER_PLAN.md](docs/ADAPTIVE_PLANNER_MASTER_PLAN.md).
