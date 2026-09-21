@@ -1,8 +1,8 @@
 {
   "name": "iza-time-tracker",
   "private": true,
-  "version": "0.1.2",
-  "androidVersionCode": 3,
+  "version": "0.2.0",
+  "androidVersionCode": 4,
   "type": "module",
   "scripts": {
     "dev": "vite",
