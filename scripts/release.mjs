@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFile, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -169,6 +170,11 @@ async function updateVersionMetadata(version, versionCode) {
 }
 
 function runQualityChecks() {
+  console.log('Validating Firebase client configuration…')
+  run('npm', ['run', 'validate:firebase', '--', '--env', '.env.example'])
+  if (existsSync(resolve(repositoryRoot, '.env'))) {
+    run('npm', ['run', 'validate:firebase', '--', '--env', '.env'])
+  }
   console.log('Running tests…')
   run('npm', ['test', '--', '--run'])
   console.log('Running lint…')

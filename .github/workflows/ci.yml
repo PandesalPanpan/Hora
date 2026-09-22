@@ -48,6 +48,7 @@ jobs:
           set -euo pipefail
           test -s android/app/google-services.json
           cp .env.example .env
+          npm run validate:firebase -- --env .env --google-services android/app/google-services.json
 
       - name: Run tests
         run: npm test
