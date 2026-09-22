@@ -156,6 +156,16 @@ describe('Iza timer and navigation', () => {
     expect(screen.queryByText(/12%|rhythm/i)).not.toBeInTheDocument()
   })
 
+  it('makes Settings reachable from the desktop navigation rail', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+
+    expect(window.location.hash).toBe('#/settings')
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Open settings' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('heading', { name: 'Your gentle corner' })).toBeInTheDocument()
+  })
+
   it('opens a URL-backed version history from Your gentle corner', () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))

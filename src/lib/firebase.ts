@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app'
-import { browserLocalPersistence, browserSessionPersistence, getAuth, indexedDBLocalPersistence, initializeAuth, type Auth } from 'firebase/auth'
+import { browserLocalPersistence, browserPopupRedirectResolver, browserSessionPersistence, getAuth, indexedDBLocalPersistence, initializeAuth, type Auth } from 'firebase/auth'
 import { getFirestore, type Firestore } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -39,7 +39,10 @@ export function getFirebaseAuth(): Auth | null {
     }
   } else {
     try {
-      auth = initializeAuth(firebaseApp, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] })
+      auth = initializeAuth(firebaseApp, {
+        persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence],
+        popupRedirectResolver: browserPopupRedirectResolver,
+      })
     } catch {
       auth = getAuth(firebaseApp)
     }

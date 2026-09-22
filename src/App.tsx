@@ -147,6 +147,9 @@ function AppContent() {
         <nav className="desktop-rail" aria-label="Primary navigation">
           <button className="rail-mark" type="button" onClick={() => navigate('/today')} aria-label="Iza home">I</button>
           {primaryNav.map(({ route: target, label, icon: Icon }) => <button type="button" key={target} aria-label={`${label} desktop`} onClick={() => navigate(target)} aria-current={route === target || route === '/history' && target === '/reports' ? 'page' : undefined}><Icon /><span>{label}</span></button>)}
+          <div className="desktop-rail-secondary">
+            <button type="button" aria-label="Settings" onClick={() => navigate('/settings')} aria-current={route === '/settings' ? 'page' : undefined}><UserRound aria-hidden="true" /><span>Settings</span></button>
+          </div>
         </nav>
 
         <div className="app-main">
@@ -155,7 +158,7 @@ function AppContent() {
             <span className="tagline">make time feel softer</span>
             <div className="topbar-actions">
               <SyncIndicator />
-              <button className="notification-button" type="button" aria-label="Open settings" onClick={() => navigate('/settings')}><UserRound aria-hidden="true" /></button>
+              <button className="notification-button" type="button" aria-label="Open settings" onClick={() => navigate('/settings')} aria-current={route === '/settings' ? 'page' : undefined}><UserRound aria-hidden="true" /></button>
             </div>
           </header>
 

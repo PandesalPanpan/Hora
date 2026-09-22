@@ -7,7 +7,7 @@ const outputRoot = path.resolve(process.argv[2] ?? '.artifacts/mobile-repair/cur
 const baseUrl = process.argv[3] ?? 'http://127.0.0.1:5173'
 const seeded = process.argv.includes('--seeded')
 const routes = ['today', 'planner', 'tasks', 'reports', 'settings']
-const viewports = [[320, 568], [360, 800], [390, 844], [1024, 768]]
+const viewports = [[320, 568], [360, 800], [390, 844], [768, 900], [1024, 768]]
 
 await mkdir(outputRoot, { recursive: true })
 

@@ -110,7 +110,7 @@ describe('Firestore sync engine', () => {
       deletedAt: null,
       syncSchemaVersion: 1,
     })
-    remoteDocs.set('users/alice/tasks', envelope())
+    remoteDocs.set('users/alice/tasks', envelope({ updatedAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() }))
     startCloudSync('alice')
 
     await waitFor(async () => {

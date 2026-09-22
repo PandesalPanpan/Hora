@@ -27,6 +27,7 @@ button { touch-action: manipulation; }
 .brand { width: max-content; padding: 0; border: 0; color: var(--hora-ink); background: transparent; font-family: 'Arima', sans-serif; font-size: 31px; font-weight: 700; line-height: 1; cursor: pointer; }
 .tagline { position: absolute; left: 23px; bottom: 8px; color: var(--hora-muted); font-size: 11px; font-weight: 600; }
 .notification-button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; position: relative; color: var(--hora-pink); background: white; box-shadow: 0 6px 16px rgba(122, 83, 74, .05); cursor: pointer; }
+.notification-button[aria-current='page'] { color: white; background: var(--hora-pink); }
 .notification-button svg { width: 19px; }
 .notification-button span { width: 9px; height: 9px; border-radius: 50%; position: absolute; right: 8px; top: 8px; background: var(--hora-pink); box-shadow: 0 0 0 2px white; }
 .topbar-actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
@@ -308,6 +309,7 @@ button { touch-action: manipulation; }
   .desktop-rail button { width: 64px; min-height: 64px; padding: 8px 3px; border-radius: 20px; display: grid; place-items: center; align-content: center; gap: 5px; color: var(--hora-muted); background: transparent; }
   .desktop-rail button[aria-current='page'] { color: var(--hora-pink); background: var(--hora-rose); }
   .desktop-rail .rail-mark { margin-bottom: 28px; color: var(--hora-pink); font: 700 28px/1 'Arima', sans-serif; }
+  .desktop-rail-secondary { width: 100%; margin-top: auto; padding-top: 18px; border-top: 1px solid var(--hora-line); }
   .desktop-rail svg { width: 23px; }
   .desktop-rail span { font-size: 10px; font-weight: 700; }
   .app-main { min-height: 750px; }

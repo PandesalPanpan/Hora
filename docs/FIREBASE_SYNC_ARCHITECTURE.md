@@ -105,7 +105,7 @@ The native Google provider uses the maintained Capacitor Firebase Authentication
 ## Deployment checklist
 
 1. Copy `.env.example` to `.env` for the `hora-9e650` web app values. The release and CI workflows do this automatically.
-2. In Firebase Authentication, enable Google and email/password providers and register the web app and Android app (`com.izatime.tracker`).
+2. In Firebase Authentication, enable Google and email/password providers and register the web app and Android app (`com.izatime.tracker`). Under **Settings → Authorized domains**, keep both production web domains present: `hora.marticio.com` and `hora-marticio.netlify.app`. Missing domains produce `auth/unauthorized-domain`; that is separate from browser popup resolver errors such as `auth/argument-error`.
 3. Add the debug and release fingerprints above to the registered Android app.
 4. Keep the downloaded Android client configuration at `android/app/google-services.json`; it is tracked because it is public client metadata. Never add service-account keys, signing keys, or passwords.
 5. Create the Firestore database, deploy `firebase.json`/`firestore.rules`, and verify an authenticated user can write only under their own UID.
