@@ -102,9 +102,9 @@ npm run release:doctor
 npm run release -- release --initial --dry-run
 npm run release -- release --initial
 
-# Later releases:
-npm run release -- release --version 0.2.0 --version-code 4 --dry-run
-npm run release -- release --version 0.2.0 --version-code 4
+# This release:
+npm run release -- release --version 0.3.0 --version-code 5 --dry-run
+npm run release -- release --version 0.3.0 --version-code 5
 ```
 
 The command requires a clean `main` worktree, checks that the version code is higher than the current one, runs tests/lint/web build, updates `package.json` and `package-lock.json`, creates the matching annotated tag, and pushes the commit and tag. The tag starts `.github/workflows/android-release.yml`; it does not upload an unsigned local APK. Do not use `--allow-dirty` or bypass the checks: release only after the intended product changes are committed.

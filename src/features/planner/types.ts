@@ -1,3 +1,5 @@
+import type { SyncMetadata } from '../../lib/syncTypes'
+
 export type PlannerCategory = 'Focus' | 'Leisure' | 'Others' | 'Rest'
 
 export type PlannedBlock = {
@@ -21,4 +23,4 @@ export type PlannedBlock = {
   excludedDates?: string[]
   occurrenceDate?: string
   detachedFromSeries?: boolean
-}
+} & SyncMetadata

@@ -6,6 +6,7 @@ import type { PlannedBlock } from '../features/planner/types'
 import type { StoredSession } from './db'
 import type { Task } from '../features/tasks/types'
 import { db, legacyKeys, migrateLegacyLocalStorage, replaceDatabaseState } from './db'
+import { getCurrentOwnerId } from './ownership'
 import { reconcileAllNotifications } from './notifications'
 
 type BackupPayload = {
@@ -24,11 +25,12 @@ function backupName(date = new Date()): string {
 
 export async function createBackup(): Promise<void> {
   await migrateLegacyLocalStorage()
+  const ownerId = getCurrentOwnerId()
   const [sessions, plannedBlocks, tasks, activities] = await Promise.all([
-    db.sessions.toArray(),
-    db.plannedBlocks.toArray(),
-    db.tasks.toArray(),
-    db.activities.toArray(),
+    db.sessions.where('ownerId').equals(ownerId).filter(session => !session.deletedAt).toArray(),
+    db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).toArray(),
+    db.tasks.where('ownerId').equals(ownerId).filter(task => !task.deletedAt).toArray(),
+    db.activities.where('ownerId').equals(ownerId).filter(activity => !activity.deletedAt).toArray(),
   ])
   const payload: BackupPayload = { format: 'iza-backup', version: 1, exportedAt: new Date().toISOString(), sessions, plannedBlocks, tasks, activities }
   const json = JSON.stringify(payload, null, 2)

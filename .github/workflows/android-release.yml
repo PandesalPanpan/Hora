@@ -44,6 +44,30 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci
 
+      - name: Prepare Firebase client configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s android/app/google-services.json
+          test -s .env.example
+          cp .env.example .env
+          node <<'NODE'
+          const fs = require('node:fs')
+          const services = JSON.parse(fs.readFileSync('android/app/google-services.json', 'utf8'))
+          const packages = (services.client ?? []).map((client) => client.client_info?.android_client_info?.package_name)
+          if (!packages.includes('com.izatime.tracker')) {
+            throw new Error('google-services.json does not contain com.izatime.tracker')
+          }
+          const env = Object.fromEntries(fs.readFileSync('.env', 'utf8').split(/\r?\n/).filter((line) => line && !line.startsWith('#')).map((line) => {
+            const separator = line.indexOf('=')
+            return [line.slice(0, separator), line.slice(separator + 1)]
+          }))
+          for (const key of ['VITE_FIREBASE_API_KEY', 'VITE_FIREBASE_AUTH_DOMAIN', 'VITE_FIREBASE_PROJECT_ID', 'VITE_FIREBASE_STORAGE_BUCKET', 'VITE_FIREBASE_MESSAGING_SENDER_ID', 'VITE_FIREBASE_APP_ID']) {
+            if (!env[key]) throw new Error(`Missing ${key} from .env.example`)
+          }
+          console.log('Firebase client configuration is present for the web bundle and com.izatime.tracker.')
+          NODE
+
       - name: Validate release version
         id: version
         shell: bash
@@ -129,8 +153,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create "${{ steps.version.outputs.tag }}" \
-            "${RUNNER_TEMP}/app-release.apk#app-release.apk" \
-            "${RUNNER_TEMP}/update.json#update.json" \
-            --title "Iza ${{ steps.version.outputs.version }}" \
-            --generate-notes
+          notes_file="docs/release-notes/${{ steps.version.outputs.tag }}.md"
+          release_args=(
+            "${{ steps.version.outputs.tag }}"
+            "${RUNNER_TEMP}/app-release.apk#app-release.apk"
+            "${RUNNER_TEMP}/update.json#update.json"
+            --title "Iza ${{ steps.version.outputs.version }}"
+          )
+          if [[ -f "${notes_file}" ]]; then
+            release_args+=(--notes-file "${notes_file}")
+          else
+            release_args+=(--generate-notes)
+          fi
+          gh release create "${release_args[@]}"

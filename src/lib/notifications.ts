@@ -3,6 +3,7 @@ import { LocalNotifications, type ActionPerformed, type LocalNotificationSchema,
 import type { ActiveSession } from '../features/timer/types'
 import { activeSessionSeconds } from './time'
 import { db, loadDatabaseState, migrateLegacyLocalStorage } from './db'
+import { getCurrentOwnerId } from './ownership'
 import { expandRecurringBlock } from '../features/planner/recurrence'
 import type { PlannedBlock } from '../features/planner/types'
 import { cancelNativeTimerMilestone, isNativeTimerBridgeAvailable, syncNativeTimer } from '../features/timer/native'
@@ -415,7 +416,8 @@ export async function reconcileTimeflowNotifications(active?: ActiveSession | nu
 export async function reconcilePlannedBlockReminders(nowMs = Date.now(), options: NotificationScheduleOptions = {}): Promise<void> {
   if (!Capacitor.isNativePlatform()) return
   await migrateLegacyLocalStorage()
-  const [blocks, pending] = await Promise.all([db.plannedBlocks.toArray(), pendingNotifications()])
+  const ownerId = getCurrentOwnerId()
+  const [blocks, pending] = await Promise.all([db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).toArray(), pendingNotifications()])
   const expected = plannerOccurrences(blocks, nowMs)
   const expectedById = new Map(expected.map(item => [plannedReminderNotificationId(item.block.id), item]))
   const owned = pending.filter(isOwnedPlannerReminder)

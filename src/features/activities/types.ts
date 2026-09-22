@@ -1,4 +1,5 @@
 import type { ActivityGroup } from './catalog'
+import type { SyncMetadata } from '../../lib/syncTypes'
 
 export type ActivityPreset = {
   id: string
@@ -11,6 +12,6 @@ export type ActivityPreset = {
   builtIn?: boolean
   createdAt: string
   updatedAt: string
-}
+} & SyncMetadata
 
 export const normalizeActivityName = (name: string) => name.trim().toLocaleLowerCase()

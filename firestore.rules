@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validCollection(collection) {
+      return collection in ['tasks', 'sessions', 'plannedBlocks', 'activities'];
+    }
+
+    function validEnvelope(uid, collection, recordId) {
+      return request.resource.data.keys().hasAll([
+          'schemaVersion', 'recordType', 'id', 'ownerId', 'deviceId',
+          'createdAt', 'updatedAt', 'deletedAt', 'payload'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.id == recordId
+        && request.resource.data.ownerId == uid
+        && request.resource.data.recordType == collection
+        && request.resource.data.deviceId is string
+        && request.resource.data.createdAt is string
+        && request.resource.data.updatedAt is string
+        && (request.resource.data.deletedAt == null || request.resource.data.deletedAt is string)
+        && (request.resource.data.payload == null || request.resource.data.payload is map);
+    }
+
+    match /users/{uid}/{collection}/{recordId} {
+      allow read: if ownsUser(uid) && validCollection(collection);
+      allow create: if ownsUser(uid) && validCollection(collection) && validEnvelope(uid, collection, recordId);
+      allow update: if ownsUser(uid)
+        && validCollection(collection)
+        && resource.data.ownerId == uid
+        && resource.data.id == recordId
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.id == resource.data.id
+        && validEnvelope(uid, collection, recordId);
+      // Deletions are represented by a durable deletedAt tombstone.
+      allow delete: if false;
+    }
+
+    match /users/{uid} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -29,6 +29,16 @@ button { touch-action: manipulation; }
 .notification-button { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; position: relative; color: var(--hora-pink); background: white; box-shadow: 0 6px 16px rgba(122, 83, 74, .05); cursor: pointer; }
 .notification-button svg { width: 19px; }
 .notification-button span { width: 9px; height: 9px; border-radius: 50%; position: absolute; right: 8px; top: 8px; background: var(--hora-pink); box-shadow: 0 0 0 2px white; }
+.topbar-actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.sync-indicator { min-height: 32px; max-width: 164px; padding: 5px 9px; border: 1px solid var(--hora-line); border-radius: 16px; display: inline-flex; align-items: center; gap: 5px; overflow: hidden; color: var(--hora-muted); background: rgba(255,255,255,.8); font-size: 9px; font-weight: 700; white-space: nowrap; }
+.sync-indicator svg { width: 14px; flex: none; }
+.sync-indicator span { overflow: hidden; text-overflow: ellipsis; }
+.sync-indicator.pending, .sync-indicator.error { border-color: var(--hora-pink); color: var(--hora-raspberry); cursor: pointer; }
+.sync-indicator.syncing { color: var(--hora-pink); }
+.sync-indicator.synced { color: var(--hora-green); }
+.sync-indicator.offline, .sync-indicator.local { color: var(--hora-muted); }
+.sync-indicator .spin { animation: sync-spin .9s linear infinite; }
+@keyframes sync-spin { to { transform: rotate(360deg); } }
 .content-panel { min-height: calc(100dvh - 94px); padding: 0 20px calc(85px + env(safe-area-inset-bottom)); position: relative; }
 .desktop-rail { display: none; }
 
@@ -182,6 +192,22 @@ button { touch-action: manipulation; }
 .tool-links strong, .settings-list strong { font-size: 12px; }
 .settings-list span { color: var(--hora-muted); font-size: 9px; }
 .settings-list b { color: #5fae83; font-size: 10px; }
+.auth-card { margin: 14px 0; padding: 14px; border: 1.5px solid var(--hora-line); border-radius: 23px; display: grid; gap: 10px; background: white; box-shadow: 0 5px 14px rgba(122,83,74,.05); }
+.auth-card > header { display: grid; grid-template-columns: 32px 1fr; align-items: start; gap: 9px; }
+.auth-card > header > svg { width: 21px; margin-top: 2px; color: var(--hora-pink); }
+.auth-card h2 { margin: 0; font: 700 14px/1.3 'Poppins', sans-serif; }
+.auth-card p { margin: 3px 0 0; color: var(--hora-muted); font-size: 10px; line-height: 1.45; }
+.auth-card form { display: grid; gap: 8px; }
+.auth-card .note-field { gap: 4px; }
+.auth-card .note-field input { min-height: 44px; }
+.google-auth-button { min-height: 46px; padding: 7px 12px; border: 1.5px solid var(--hora-ink); border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 9px; color: var(--hora-ink); background: white; font-weight: 700; cursor: pointer; }
+.google-auth-button:disabled, .auth-card button:disabled { opacity: .55; cursor: not-allowed; }
+.google-mark { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #4285f4; background: #f1f3f4; font-weight: 700; }
+.auth-divider { display: flex; align-items: center; gap: 8px; color: var(--hora-muted); font-size: 9px; }
+.auth-divider::before, .auth-divider::after { content: ''; height: 1px; flex: 1; background: var(--hora-line); }
+.auth-message { color: var(--hora-raspberry) !important; }
+.auth-mode-toggle { min-height: 44px; border: 0; color: var(--hora-raspberry); background: transparent; font-size: 10px; font-weight: 700; cursor: pointer; }
+.auth-signout { margin-top: 0; }
 
 .feature-page { padding-top: 4px; }
 .feature-heading { margin-bottom: 12px; display: flex; align-items: end; justify-content: space-between; gap: 12px; }
@@ -508,6 +534,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 @media (prefers-reduced-motion: reduce) {
   .correction-disclosure > svg:last-child, .activity-group, .archived-activities > button svg { transition: none; }
   .pointer-drag-preview { transform: none; }
+  .sync-indicator .spin { animation: none; }
 }
 
 .update-banner { margin: 0 20px 12px; padding: 14px; border: 1.5px solid var(--hora-pink); border-radius: 22px; position: relative; z-index: 2; background: var(--hora-rose); box-shadow: 0 6px 16px rgba(122,83,74,.08); }

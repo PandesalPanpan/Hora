@@ -6,7 +6,11 @@ import { BarChart3, CalendarDays, CheckSquare, Clock3, UserRound } from 'lucide-
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CompletionSheet } from './components/CompletionSheet'
 import { UpdateBanner } from './components/UpdateBanner'
+import { AuthProvider } from './features/auth/AuthProvider'
+import { useAuth } from './features/auth/context'
 import { Planner } from './features/planner/Planner'
+import { startCloudSync, stopCloudSync } from './features/sync/engine'
+import { SyncIndicator } from './features/sync/SyncIndicator'
 import type { CompletedSession } from './features/timer/types'
 import { useTimer } from './features/timer/useTimer'
 import { useUpdateManager } from './features/updates/useUpdateManager'
@@ -36,9 +40,11 @@ const primaryNav: Array<{ route: AppRoute; label: string; icon: typeof Clock3 }>
   { route: '/reports', label: 'Reports', icon: BarChart3 },
 ]
 
-export default function App() {
+function AppContent() {
   useSheetNavigation()
   const appCanvasRef = useRef<HTMLElement>(null)
+  const auth = useAuth()
+  const authUid = auth.user?.uid
   const timer = useTimer()
   const updates = useUpdateManager()
   const [routeKey, setRouteKey] = useState(window.location.hash)
@@ -46,6 +52,12 @@ export default function App() {
   const [completedReview, setCompletedReview] = useState<CompletedSession | null>(null)
   const [deletedSession, setDeletedSession] = useState<CompletedSession | null>(null)
   const [confirmation, setConfirmation] = useState('')
+
+  useEffect(() => {
+    if (auth.status === 'authenticated' && authUid) startCloudSync(authUid)
+    else stopCloudSync()
+    return () => stopCloudSync()
+  }, [auth.status, authUid])
 
   useEffect(() => {
     if (!routes.has(window.location.hash.slice(1).split('?')[0] as AppRoute)) window.history.replaceState(null, '', '#/today')
@@ -141,7 +153,10 @@ export default function App() {
           <header className="topbar">
             <button className="brand" type="button" onClick={() => navigate('/today')} aria-label="Iza home">Iza</button>
             <span className="tagline">make time feel softer</span>
-            <button className="notification-button" type="button" aria-label="Open settings" onClick={() => navigate('/settings')}><UserRound aria-hidden="true" /></button>
+            <div className="topbar-actions">
+              <SyncIndicator />
+              <button className="notification-button" type="button" aria-label="Open settings" onClick={() => navigate('/settings')}><UserRound aria-hidden="true" /></button>
+            </div>
           </header>
 
           <UpdateBanner state={updates.state} onLater={updates.later} onDownload={() => void updates.download()} onInstall={() => void updates.install()} onOpenInstallSettings={() => void updates.openInstallSettings()} />
@@ -169,4 +184,8 @@ export default function App() {
       </section>
     </main>
   )
+}
+
+export default function App() {
+  return <AuthProvider><AppContent /></AuthProvider>
 }

@@ -14,7 +14,8 @@ import type { ActiveSession, Activity, CompletedSession } from '../timer/types'
 import type { TimerStartOptions } from '../timer/useTimer'
 import type { PlannedBlock, PlannerCategory } from './types'
 import { sessionSeconds } from '../../lib/time'
-import { db, legacyKeys, migrateLegacyLocalStorage } from '../../lib/db'
+import { db, migrateLegacyLocalStorage } from '../../lib/db'
+import { useCurrentOwnerId } from '../../lib/ownership'
 import './Planner.css'
 import { changeOccurrence, expandRecurringBlock } from './recurrence'
 import { reconcilePlannedBlockReminders } from '../../lib/notifications'
@@ -56,7 +57,6 @@ type DraftBlock = {
   reminderMinutesBefore: number | null
 }
 
-const PLANNER_KEY = legacyKeys.PLANNER_KEY
 const HOUR_HEIGHT = 68
 const categories: Record<PlannerCategory, string> = {
   Focus: '#d92f6f',
@@ -99,14 +99,6 @@ function formatDuration(minutes: number) {
   return `${hours} hr${hours === 1 ? '' : 's'}${remainder ? ` ${remainder} min` : ''}`
 }
 
-function loadBlocks(): PlannedBlock[] {
-  try {
-    return JSON.parse(localStorage.getItem(PLANNER_KEY) ?? '[]') as PlannedBlock[]
-  } catch {
-    return []
-  }
-}
-
 function draftFor(date: Date, hour = 9): DraftBlock {
   const endTime = hour === 23 ? '23:59' : `${pad(hour + 1)}:00`
   return {
@@ -133,8 +125,9 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
   const [wide, setWide] = useState(() => window.innerWidth >= 768)
   const [overflow, setOverflow] = useState<CalendarEvent[] | null>(null)
   const [selectedDate, setSelectedDate] = useState(() => params.get('date') ? new Date(`${params.get('date')}T12:00:00`) : new Date())
-  const [planned, setPlanned] = useState<PlannedBlock[]>(loadBlocks)
-  const presets = useLiveQuery(() => db.activities.orderBy('order').toArray()) ?? []
+  const ownerId = useCurrentOwnerId()
+  const [planned, setPlanned] = useState<PlannedBlock[]>([])
+  const presets = useLiveQuery(() => db.activities.where('ownerId').equals(ownerId).filter(activity => !activity.deletedAt).sortBy('order'), [ownerId]) ?? []
   const [editingBlock, setEditingBlock] = useState<PlannedBlock | null>(null)
   const [editScope, setEditScope] = useState<'one' | 'future'>('one')
   const [deleteConfirm, setDeleteConfirm] = useState(false)
@@ -148,11 +141,11 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
 
   useEffect(() => {
     let cancelled = false
-    void migrateLegacyLocalStorage().then(() => db.plannedBlocks.orderBy('startedAt').toArray()).then((blocks) => {
+    void migrateLegacyLocalStorage().then(() => db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).sortBy('startedAt')).then((blocks) => {
       if (!cancelled) setPlanned(blocks)
     }).catch(() => undefined)
     return () => { cancelled = true }
-  }, [])
+  }, [ownerId])
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date()), 30_000)
@@ -249,8 +242,8 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
     try {
       const source = editingBlock && planned.find(item => item.id === editingBlock.id || (item.recurrence && (item.recurrenceSeriesId ?? item.id) === editingBlock.recurrenceSeriesId))
       const replacements = source ? changeOccurrence(source, editingBlock?.occurrenceDate ?? draft.date, editScope, block) : [block]
-      await db.transaction('rw', db.plannedBlocks, async () => { if (source) await db.plannedBlocks.delete(source.id); await db.plannedBlocks.bulkPut(replacements) })
-      setPlanned(await db.plannedBlocks.toArray()); setDraft(null); setEditingBlock(null); setInspected(null); setSaveError('')
+      await db.transaction('rw', db.plannedBlocks, db.outbox, db.syncTombstones, async () => { if (source) await db.plannedBlocks.delete(source.id); await db.plannedBlocks.bulkPut(replacements.map(item => ({ ...item, ownerId: ownerId }))) })
+      setPlanned(await db.plannedBlocks.where('ownerId').equals(ownerId).filter(item => !item.deletedAt).toArray()); setDraft(null); setEditingBlock(null); setInspected(null); setSaveError('')
       void reconcilePlannedBlockReminders(Date.now(), { requestPermission: Boolean(block.reminderMinutesBefore !== undefined) })
     } catch { setSaveError('This block could not be saved. Try again.') } finally { saveLock.current = false; setSaving(false) }
   }
@@ -270,8 +263,8 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
     setSaving(true)
     try {
       const replacements = changeOccurrence(source, inspectBlock.occurrenceDate ?? dateKey(new Date(inspectBlock.startedAt)), editScope)
-      await db.transaction('rw', db.plannedBlocks, async () => { await db.plannedBlocks.delete(source.id); if (replacements.length) await db.plannedBlocks.bulkPut(replacements) })
-      setPlanned(await db.plannedBlocks.toArray()); setInspected(null); setDeleteConfirm(false); setSaveError('')
+      await db.transaction('rw', db.plannedBlocks, db.outbox, db.syncTombstones, async () => { await db.plannedBlocks.delete(source.id); if (replacements.length) await db.plannedBlocks.bulkPut(replacements.map(item => ({ ...item, ownerId }))) })
+      setPlanned(await db.plannedBlocks.where('ownerId').equals(ownerId).filter(item => !item.deletedAt).toArray()); setInspected(null); setDeleteConfirm(false); setSaveError('')
       void reconcilePlannedBlockReminders()
     } catch { setSaveError('This block could not be deleted. Try again.') } finally { saveLock.current = false; setSaving(false) }
   }
@@ -311,7 +304,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
-      void db.plannedBlocks.put(resized).then(() => reconcilePlannedBlockReminders()).catch(() => {
+      void db.transaction('rw', db.plannedBlocks, db.outbox, db.syncTombstones, async () => { await db.plannedBlocks.put({ ...resized, ownerId }) }).then(() => reconcilePlannedBlockReminders()).catch(() => {
         setPlanned(current => current.map(block => block.id === blockId ? original : block))
         setSaveError('The resized block could not be saved. Try again.')
       })

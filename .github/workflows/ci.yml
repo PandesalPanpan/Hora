@@ -42,6 +42,13 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci
 
+      - name: Prepare Firebase client configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s android/app/google-services.json
+          cp .env.example .env
+
       - name: Run tests
         run: npm test
 

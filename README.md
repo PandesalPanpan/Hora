@@ -11,7 +11,11 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite. Activity and session data is kept in the browser's local storage for this first slice.
+Open the URL printed by Vite. IndexedDB is the local source of truth; Firebase is optional and only adds account-backed cloud sync.
+
+### Optional Firebase sync
+
+Copy `.env.example` to `.env`, then enable Google and email/password sign-in and Firestore for the `hora-9e650` Firebase project. Without those values, Hora remains a local-only app. See [docs/FIREBASE_SYNC_ARCHITECTURE.md](docs/FIREBASE_SYNC_ARCHITECTURE.md) for the Android package, signing fingerprints, rules, and deployment checklist.
 
 ## Run on Android
 
@@ -45,7 +49,7 @@ Android sideload updates use the public GitHub Releases API for `PandesalPanpan/
 
 The release and signing contract is documented in [docs/ANDROID_UPDATES.md](docs/ANDROID_UPDATES.md). Before publishing a release, configure the documented GitHub Actions secrets; never commit the release keystore or its passwords.
 
-Once the signing secrets are configured and `gh auth login` has been completed, use `npm run release:doctor` to verify the release connection and `npm run release -- release --version 0.2.0 --version-code 4` to tag and start a signed GitHub release. The command requires a clean `main` worktree.
+Once the signing secrets are configured and `gh auth login` has been completed, use `npm run release:doctor` to verify the release connection and `npm run release -- release --version 0.3.0 --version-code 5` to tag and start a signed GitHub release. The command requires a clean `main` worktree.
 
 ### Installed development emulator
 

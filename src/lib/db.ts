@@ -5,6 +5,9 @@ import type { Task } from '../features/tasks/types'
 import type { ActivityPreset } from '../features/activities/types'
 import { activityGroups } from '../features/activities/catalog'
 import { normalizeActivityName } from '../features/activities/types'
+import { getCurrentOwnerId, getInstallationId } from './ownership'
+import { registerSyncHooks, syncMetadata } from '../features/sync/hooks'
+import type { OutboxEntry, SyncTombstone } from '../features/sync/schema'
 
 export type StoredSession = ActiveSession & { finishedAt?: string }
 
@@ -16,6 +19,8 @@ class IzaDatabase extends Dexie {
   tasks!: EntityTable<Task, 'id'>
   activities!: EntityTable<ActivityPreset, 'id'>
   meta!: EntityTable<MetaRecord, 'key'>
+  outbox!: EntityTable<OutboxEntry, 'id'>
+  syncTombstones!: EntityTable<SyncTombstone, 'id'>
 
   constructor() {
     super('iza-time-tracker')
@@ -62,11 +67,45 @@ class IzaDatabase extends Dexie {
         if (session.taskId && !session.taskTitleSnapshot) session.taskTitleSnapshot = titles.get(session.taskId) ?? session.activity.name
       })
     })
+    this.version(5).stores({
+      sessions: '&id,ownerId,status,startedAt,finishedAt,activity.id,taskId,plannedBlockId,updatedAt',
+      plannedBlocks: '&id,ownerId,startedAt,finishedAt,taskId,activityId,recurrenceSeriesId,occurrenceDate,updatedAt',
+      tasks: '&id,ownerId,completed,completedAt,priorityOrder,updatedAt',
+      activities: '&id,&normalizedName,ownerId,category,archived,order,updatedAt',
+      meta: '&key',
+      outbox: '&id,ownerId,status,nextAttemptAt,entityType,entityId,updatedAt',
+      syncTombstones: '&id,ownerId,entityType,entityId,updatedAt,deletedAt',
+    }).upgrade(async transaction => {
+      const ownerId = getCurrentOwnerId()
+      const deviceId = getInstallationId()
+      const now = new Date().toISOString()
+      const sessions = transaction.table<StoredSession>('sessions')
+      const plannedBlocks = transaction.table<PlannedBlock>('plannedBlocks')
+      const tasks = transaction.table<Task>('tasks')
+      const activities = transaction.table<ActivityPreset>('activities')
+      await sessions.toCollection().modify(session => {
+        const updatedAt = session.updatedAt ?? session.finishedAt ?? session.startedAt ?? now
+        Object.assign(session, { ownerId: session.ownerId ?? ownerId, deviceId: session.deviceId ?? deviceId, syncSchemaVersion: 1, createdAt: session.createdAt ?? session.startedAt ?? updatedAt, updatedAt, deletedAt: session.deletedAt ?? null })
+      })
+      await plannedBlocks.toCollection().modify(block => {
+        const updatedAt = block.updatedAt ?? block.finishedAt ?? block.startedAt ?? now
+        Object.assign(block, { ownerId: block.ownerId ?? ownerId, deviceId: block.deviceId ?? deviceId, syncSchemaVersion: 1, createdAt: block.createdAt ?? block.startedAt ?? updatedAt, updatedAt, deletedAt: block.deletedAt ?? null })
+      })
+      await tasks.toCollection().modify(task => {
+        const updatedAt = task.updatedAt ?? task.createdAt ?? now
+        Object.assign(task, { ownerId: task.ownerId ?? ownerId, deviceId: task.deviceId ?? deviceId, syncSchemaVersion: 1, createdAt: task.createdAt ?? updatedAt, updatedAt, deletedAt: task.deletedAt ?? null })
+      })
+      await activities.toCollection().modify(activity => {
+        const updatedAt = activity.updatedAt ?? activity.createdAt ?? now
+        Object.assign(activity, { ownerId: activity.ownerId ?? ownerId, deviceId: activity.deviceId ?? deviceId, syncSchemaVersion: 1, createdAt: activity.createdAt ?? updatedAt, updatedAt, deletedAt: activity.deletedAt ?? null })
+      })
+    })
 
   }
 }
 
 export const db = new IzaDatabase()
+registerSyncHooks(db)
 
 const ACTIVE_KEY = 'iza.active-session.v1'
 const COMPLETED_KEY = 'iza.completed-sessions.v1'
@@ -85,18 +124,28 @@ function parse<T>(key: string, fallback: T): T {
 export async function migrateLegacyLocalStorage(): Promise<void> {
   if (await db.meta.get(MIGRATION_KEY)) return
 
+  const ownerId = getCurrentOwnerId()
+  const deviceId = getInstallationId()
   const active = parse<ActiveSession | null>(ACTIVE_KEY, null)
   const completed = parse<CompletedSession[]>(COMPLETED_KEY, [])
   const planned = parse<PlannedBlock[]>(PLANNER_KEY, [])
   const tasks = parse<Task[]>(TASKS_KEY, [])
+  const migratedAt = new Date().toISOString()
+  const stamp = <T extends Record<string, unknown>>(record: T, updatedAt = migratedAt): T => syncMetadata({
+    ...record,
+    ownerId,
+    deviceId,
+    createdAt: record.createdAt ?? record.startedAt ?? updatedAt,
+    updatedAt: record.updatedAt ?? updatedAt,
+    deletedAt: record.deletedAt ?? null,
+  }, updatedAt) as T
 
-  await db.transaction('rw', db.sessions, db.plannedBlocks, db.tasks, db.meta, async () => {
-    if (active) await db.sessions.put({ ...active, status: active.status ?? 'running' })
-    if (completed.length) await db.sessions.bulkPut(completed.map((session) => ({ ...session, status: 'completed', taskTitleSnapshot: session.taskTitleSnapshot ?? tasks.find(task => task.id === session.taskId)?.title })))
-    if (planned.length) await db.plannedBlocks.bulkPut(planned)
+  await db.transaction('rw', [db.sessions, db.plannedBlocks, db.tasks, db.outbox, db.syncTombstones, db.meta], async () => {
+    if (active) await db.sessions.put(stamp({ ...active, status: active.status ?? 'running' }))
+    if (completed.length) await db.sessions.bulkPut(completed.map((session) => stamp({ ...session, status: 'completed', taskTitleSnapshot: session.taskTitleSnapshot ?? tasks.find(task => task.id === session.taskId)?.title }, session.finishedAt ?? migratedAt)))
+    if (planned.length) await db.plannedBlocks.bulkPut(planned.map((block) => stamp(block, block.updatedAt ?? block.finishedAt ?? migratedAt)))
     if (tasks.length) {
-      const migratedAt = new Date().toISOString()
-      await db.tasks.bulkPut(tasks.map((task) => ({ ...task, createdAt: task.createdAt ?? migratedAt, updatedAt: task.updatedAt ?? migratedAt })))
+      await db.tasks.bulkPut(tasks.map((task) => stamp(task, task.updatedAt ?? migratedAt)))
     }
     await db.meta.put({ key: MIGRATION_KEY, value: new Date().toISOString() })
   })
@@ -104,12 +153,13 @@ export async function migrateLegacyLocalStorage(): Promise<void> {
 
 export async function loadDatabaseState() {
   await migrateLegacyLocalStorage()
+  const ownerId = getCurrentOwnerId()
   const [active, completed, planned, tasks, activities] = await Promise.all([
-    db.sessions.where('status').anyOf('running', 'paused').first(),
-    db.sessions.where('status').equals('completed').reverse().sortBy('startedAt'),
-    db.plannedBlocks.orderBy('startedAt').toArray(),
-    db.tasks.orderBy('updatedAt').toArray(),
-    db.activities.orderBy('order').toArray(),
+    db.sessions.where('ownerId').equals(ownerId).filter(session => (session.status === 'running' || session.status === 'paused') && !session.deletedAt).first(),
+    db.sessions.where('ownerId').equals(ownerId).filter(session => session.status === 'completed' && !session.deletedAt).reverse().sortBy('startedAt'),
+    db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).sortBy('startedAt'),
+    db.tasks.where('ownerId').equals(ownerId).filter(task => !task.deletedAt).sortBy('updatedAt'),
+    db.activities.where('ownerId').equals(ownerId).filter(activity => !activity.deletedAt).sortBy('order'),
   ])
   return {
     active: active ?? null,
@@ -126,12 +176,31 @@ export async function replaceDatabaseState(input: {
   tasks: Task[]
   activities?: ActivityPreset[]
 }): Promise<void> {
-  await db.transaction('rw', db.sessions, db.plannedBlocks, db.tasks, db.activities, async () => {
-    await Promise.all([db.sessions.clear(), db.plannedBlocks.clear(), db.tasks.clear()])
-    if (input.sessions.length) await db.sessions.bulkPut(input.sessions)
-    if (input.plannedBlocks.length) await db.plannedBlocks.bulkPut(input.plannedBlocks)
-    if (input.tasks.length) await db.tasks.bulkPut(input.tasks)
-    if (input.activities) { await db.activities.clear(); if (input.activities.length) await db.activities.bulkPut(input.activities) }
+  const ownerId = getCurrentOwnerId()
+  const deviceId = getInstallationId()
+  const now = new Date().toISOString()
+  const stamp = <T extends Record<string, unknown>>(record: T): T => syncMetadata({ ...record, ownerId, deviceId, updatedAt: now, deletedAt: null }, now) as T
+  await db.transaction('rw', [db.sessions, db.plannedBlocks, db.tasks, db.activities, db.outbox, db.syncTombstones], async () => {
+    const existing = await Promise.all([
+      db.sessions.where('ownerId').equals(ownerId).toArray(),
+      db.plannedBlocks.where('ownerId').equals(ownerId).toArray(),
+      db.tasks.where('ownerId').equals(ownerId).toArray(),
+      db.activities.where('ownerId').equals(ownerId).toArray(),
+    ])
+    const incomingIds = new Map<string, Set<string>>([
+      ['sessions', new Set(input.sessions.map(record => record.id))],
+      ['plannedBlocks', new Set(input.plannedBlocks.map(record => record.id))],
+      ['tasks', new Set(input.tasks.map(record => record.id))],
+      ['activities', new Set((input.activities ?? existing[3]).map(record => record.id))],
+    ])
+    for (const record of existing[0]) if (!incomingIds.get('sessions')!.has(record.id)) await db.sessions.delete(record.id)
+    for (const record of existing[1]) if (!incomingIds.get('plannedBlocks')!.has(record.id)) await db.plannedBlocks.delete(record.id)
+    for (const record of existing[2]) if (!incomingIds.get('tasks')!.has(record.id)) await db.tasks.delete(record.id)
+    if (input.activities) for (const record of existing[3]) if (!incomingIds.get('activities')!.has(record.id)) await db.activities.delete(record.id)
+    if (input.sessions.length) await db.sessions.bulkPut(input.sessions.map(stamp))
+    if (input.plannedBlocks.length) await db.plannedBlocks.bulkPut(input.plannedBlocks.map(stamp))
+    if (input.tasks.length) await db.tasks.bulkPut(input.tasks.map(stamp))
+    if (input.activities?.length) await db.activities.bulkPut(input.activities.map(stamp))
   })
 }
 

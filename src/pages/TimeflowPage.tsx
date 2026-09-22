@@ -2,6 +2,7 @@ import { ActivityManager } from '../features/activities/ActivityManager'
 import { ensureActivities } from '../features/activities/repository'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../lib/db'
+import { useCurrentOwnerId } from '../lib/ownership'
 import { todayFeed } from '../features/planner/todayFeed'
 import { localDateKey } from '../features/reports/period'
 import { CalendarDays, ChevronRight, Pause, Play, SlidersHorizontal, Square } from 'lucide-react'
@@ -37,11 +38,12 @@ function fullClock(totalSeconds: number) {
 }
 
 export function TimeflowPage({ onReview, active, completed, elapsed, start, pause, resume, setTargetMinutes, setNote, acknowledgeTarget, advancePomodoro, finish }: TimeflowPageProps) {
-  const presets = useLiveQuery(() => db.activities.orderBy('order').toArray())
+  const ownerId = useCurrentOwnerId()
+  const presets = useLiveQuery(() => db.activities.where('ownerId').equals(ownerId).filter(activity => !activity.deletedAt).sortBy('order'), [ownerId])
   const [manage, setManage] = useState(false)
   const [activityError, setActivityError] = useState('')
   useEffect(() => { void ensureActivities().catch(() => setActivityError('Activities could not be loaded. Reopen Today to try again.')) }, [])
-  const plans = useLiveQuery(() => db.plannedBlocks.toArray()) ?? []
+  const plans = useLiveQuery(() => db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).toArray(), [ownerId]) ?? []
   const feed = todayFeed(active, completed, plans)
   const [group, setGroup] = useState<ActivityGroup>('Focus')
   const [selected, setSelected] = useState<Activity>(activityGroups.Focus[0])

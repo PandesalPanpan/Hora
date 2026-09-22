@@ -1,3 +1,5 @@
+import type { SyncMetadata } from '../../lib/syncTypes'
+
 export type Task = {
   id: string
   title: string
@@ -8,4 +10,4 @@ export type Task = {
   completedAt?: string | null
   createdAt?: string
   updatedAt?: string
-}
+} & SyncMetadata

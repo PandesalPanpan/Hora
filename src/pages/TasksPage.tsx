@@ -5,10 +5,12 @@ import type { Activity, ActiveSession } from '../features/timer/types'
 import type { TimerStartOptions } from '../features/timer/useTimer'
 import type { Task } from '../features/tasks/types'
 import { db, migrateLegacyLocalStorage } from '../lib/db'
+import { useCurrentOwnerId } from '../lib/ownership'
 
 type TasksPageProps = { active: ActiveSession | null; onStart: (activity: Activity, targetMinutes?: number | null, options?: TimerStartOptions) => void }
 export function TasksPage({ active, onStart }: TasksPageProps) {
-  const tasks = useLiveQuery(() => db.tasks.toArray()) ?? []
+  const ownerId = useCurrentOwnerId()
+  const tasks = useLiveQuery(() => db.tasks.where('ownerId').equals(ownerId).filter(task => !task.deletedAt).toArray(), [ownerId]) ?? []
   const [title, setTitle] = useState('')
   const [view, setView] = useState<'open' | 'completed'>('open')
   const [query, setQuery] = useState('')
@@ -27,13 +29,13 @@ export function TasksPage({ active, onStart }: TasksPageProps) {
   useEffect(() => { void migrateLegacyLocalStorage().catch(() => setError('Tasks could not be loaded. Reopen this page to try again.')) }, [])
   useEffect(() => { if (!deleted) return; const timeout = setTimeout(() => setDeleted(null), 8000); return () => clearTimeout(timeout) }, [deleted])
   const run = async (action: () => Promise<unknown>) => { if (locked.current) return; locked.current = true; setBusy(true); try { await action(); setError('') } catch { setError('Tasks could not be saved on this device. Try again.') } finally { locked.current = false; setBusy(false) } }
-  const save = (task: Task) => db.tasks.put({ ...task, updatedAt: new Date().toISOString() })
+  const save = (task: Task) => db.transaction('rw', db.tasks, db.outbox, db.syncTombstones, async () => db.tasks.put({ ...task, ownerId: task.ownerId ?? ownerId, updatedAt: new Date().toISOString() }))
   const move = (id: string, target: string, placeAfter = false) => run(async () => {
     const ordered = open.filter(task => task.id !== id); const moving = open.find(task => task.id === id)
     if (!moving) return
     const targetIndex = Math.max(0, ordered.findIndex(task => task.id === target))
     ordered.splice(placeAfter ? targetIndex + 1 : targetIndex,0,moving)
-    await db.transaction('rw', db.tasks, async () => { for (const [priorityOrder, task] of ordered.entries()) await db.tasks.update(task.id,{ priorityOrder }) })
+    await db.transaction('rw', db.tasks, db.outbox, db.syncTombstones, async () => { for (const [priorityOrder, task] of ordered.entries()) await db.tasks.update(task.id,{ priorityOrder }) })
   })
   const reorderable = view === 'open' && !query.trim()
   const pointTarget = (clientX: number, clientY: number, movingId: string) => {
@@ -91,8 +93,8 @@ export function TasksPage({ active, onStart }: TasksPageProps) {
     {dragPreview && <div className="pointer-drag-preview task-drag-preview" aria-hidden="true" style={{ left: dragPreview.left, top: dragPreview.top, width: dragPreview.width }}><GripVertical/><div><strong>{dragPreview.title}</strong><small>{dragPreview.detail}</small></div></div>}
     {shown.length < results.length && <button className="history-day-link" type="button" onClick={() => setLimit(limit+30)}>Load more completed tasks</button>}
     {editing && <div className="completion-backdrop"><form className="completion-sheet" aria-label="Edit task" onSubmit={event => { event.preventDefault(); void run(async () => { await save({ ...editing, title: editing.title.trim() }); setEditing(null) }) }}><header><h1>Edit task</h1><button className="sheet-close" type="button" onClick={() => setEditing(null)} aria-label="Close task">×</button></header><label className="note-field">Title<input required value={editing.title} onChange={event => setEditing({ ...editing, title: event.target.value })}/></label><label className="note-field">Notes<textarea value={editing.description ?? ''} onChange={event => setEditing({ ...editing, description: event.target.value })}/></label><label className="note-field">Focus estimate<select value={editing.estimateMinutes == null ? 'none' : [15,25,30,60].includes(editing.estimateMinutes) ? String(editing.estimateMinutes) : 'custom'} onChange={event => setEditing({ ...editing, estimateMinutes: event.target.value === 'none' ? null : event.target.value === 'custom' ? 45 : Number(event.target.value) })}><option value="none">No estimate</option>{[15,25,30,60].map(value => <option key={value} value={value}>{value} minutes</option>)}<option value="custom">Custom duration</option></select></label>{editing.estimateMinutes != null && <label className="note-field">Minutes<input type="number" required min="1" max="1440" value={editing.estimateMinutes} onChange={event => setEditing({ ...editing, estimateMinutes: Number(event.target.value) })}/></label>}
-      {error && <p role="alert">{error}</p>}<button className="save-log" disabled={busy}>Save task</button>{!deleting ? <button className="delete-log" type="button" onClick={() => setDeleting(true)}>Delete task</button> : <div className="confirm-delete"><span>Delete this task? Tracked sessions will stay.</span><button type="button" onClick={() => setDeleting(false)}>Keep task</button><button type="button" disabled={busy} onClick={() => void run(async () => { await db.transaction('rw', db.tasks, db.sessions, async () => { await db.sessions.where('taskId').equals(editing.id).modify(session => { session.taskTitleSnapshot ??= editing.title }); await db.tasks.delete(editing.id) }); setDeleted(editing); setEditing(null) })}>Confirm delete</button></div>}
+      {error && <p role="alert">{error}</p>}<button className="save-log" disabled={busy}>Save task</button>{!deleting ? <button className="delete-log" type="button" onClick={() => setDeleting(true)}>Delete task</button> : <div className="confirm-delete"><span>Delete this task? Tracked sessions will stay.</span><button type="button" onClick={() => setDeleting(false)}>Keep task</button><button type="button" disabled={busy} onClick={() => void run(async () => { await db.transaction('rw', db.tasks, db.sessions, db.outbox, db.syncTombstones, async () => { await db.sessions.where('ownerId').equals(ownerId).filter(session => session.taskId === editing.id).modify(session => { session.taskTitleSnapshot ??= editing.title }); await db.tasks.delete(editing.id) }); setDeleted(editing); setEditing(null) })}>Confirm delete</button></div>}
     </form></div>}
-    {deleted && <div className="undo-toast" role="status"><span>Task deleted</span><button type="button" disabled={busy} onClick={() => void run(async () => { await db.tasks.put(deleted); setDeleted(null) })}>Undo</button></div>}
+    {deleted && <div className="undo-toast" role="status"><span>Task deleted</span><button type="button" disabled={busy} onClick={() => void run(async () => { await save(deleted); setDeleted(null) })}>Undo</button></div>}
   </section>
 }

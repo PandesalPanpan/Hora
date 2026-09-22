@@ -4,6 +4,7 @@ import type { CompletedSession } from '../features/timer/types'
 import { formatCompactDuration, sessionSeconds } from '../lib/time'
 import type { PlannedBlock } from '../features/planner/types'
 import { db, migrateLegacyLocalStorage } from '../lib/db'
+import { useCurrentOwnerId } from '../lib/ownership'
 import { localDateKey, reportWeek, startOfLocalWeek } from '../features/reports/period'
 
 const colors = ['#d9547c', '#e9a6b8', '#ffc8b3', '#91bd78']
@@ -13,7 +14,8 @@ export function ReportsPage({ completed, onOpenHistory }: { completed: Completed
   const currentWeek = useMemo(() => startOfLocalWeek(today), [today])
   const [weekStart, setWeekStart] = useState(currentWeek)
   const [selectedKey, setSelectedKey] = useState(localDateKey(today))
-  useEffect(() => { let cancelled = false; void migrateLegacyLocalStorage().then(() => db.plannedBlocks.toArray()).then((value) => { if (!cancelled) setPlanned(value) }).catch(() => undefined); return () => { cancelled = true } }, [])
+  const ownerId = useCurrentOwnerId()
+  useEffect(() => { let cancelled = false; void migrateLegacyLocalStorage().then(() => db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).toArray()).then((value) => { if (!cancelled) setPlanned(value) }).catch(() => undefined); return () => { cancelled = true } }, [ownerId])
   const summary = useMemo(() => reportWeek(completed, planned, weekStart), [completed, planned, weekStart])
   const selectedIndex = Math.max(0, summary.days.findIndex((day) => localDateKey(day) === selectedKey))
   const selectedSessions = summary.sessions.filter((item) => localDateKey(new Date(item.startedAt)) === selectedKey)

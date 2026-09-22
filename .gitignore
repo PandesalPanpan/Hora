@@ -11,3 +11,7 @@ vite.config.d.ts
 *.keystore
 *.p12
 android/signing.properties
+
+# Firebase client configuration is public app metadata and is intentionally
+# tracked so native release builds and Google sign-in use the same registered
+# Android application. Never commit service-account keys or private credentials.

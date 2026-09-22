@@ -1,3 +1,5 @@
+import type { SyncMetadata } from '../../lib/syncTypes'
+
 export type Activity = {
   id: string
   name: string
@@ -27,7 +29,7 @@ export type ActiveSession = {
     totalRounds?: number
     focusActivity: Activity
   }
-}
+} & SyncMetadata
 
 export type CompletedSession = ActiveSession & {
   finishedAt: string

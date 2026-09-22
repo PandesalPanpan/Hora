@@ -6,6 +6,7 @@ import type { UpdateManager } from '../features/updates/useUpdateManager'
 import { useRef, useState } from 'react'
 import { useEffect } from 'react'
 import { getNotificationCapability, openExactAlarmSettings, requestNotificationPermission, scheduleTestNotification, type NotificationCapabilityState } from '../lib/notifications'
+import { AuthPanel } from '../features/auth/AuthPanel'
 
 export function SettingsPage({ onNavigate, updates }: { onNavigate: (route: AppRoute) => void; updates: UpdateManager }) {
   const fileInput = useRef<HTMLInputElement>(null)
@@ -73,6 +74,7 @@ export function SettingsPage({ onNavigate, updates }: { onNavigate: (route: AppR
     <section className="hora-page me-page">
       <header className="hora-page-heading"><h1>Your gentle corner</h1><p>Plan what helps. Keep the rest simple.</p></header>
       <section className="profile-card"><span>I</span><div><strong>App version {currentVersion}</strong><small>Your data stays on this device first</small></div></section>
+      <AuthPanel />
       <h2>About Iza</h2>
       <div className="tool-links">
         <button type="button" onClick={() => onNavigate('/changelog')}><Sparkles /><span><strong>What’s new</strong><small>See changes in every version</small></span><ChevronRight /></button>

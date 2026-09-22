@@ -160,10 +160,12 @@ export function useTimer() {
     }
     document.addEventListener('iza-app-foreground', reload)
     window.addEventListener('iza-data-changed', reload)
+    window.addEventListener('iza-data-scope-changed', reload)
     return () => {
       document.removeEventListener('visibilitychange', refresh)
       window.removeEventListener('focus', refresh)
       window.removeEventListener('iza-data-changed', reload)
+      window.removeEventListener('iza-data-scope-changed', reload)
       document.removeEventListener('iza-app-foreground', reload)
     }
   }, [applyNativeAction, publishNative])

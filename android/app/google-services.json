@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "46789728655",
+    "project_id": "hora-9e650",
+    "storage_bucket": "hora-9e650.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:46789728655:android:aca12b70f6517aa099d3fa",
+        "android_client_info": {
+          "package_name": "com.izatime.tracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "46789728655-99fbt8h3dmri1vmaf6k4gdmse9ohucf8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.izatime.tracker",
+            "certificate_hash": "afb1f25703062f404c9cae9dc9533b1b6bad68da"
+          }
+        },
+        {
+          "client_id": "46789728655-188argbvj87olhcgu1hct0l3jlb1lav0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8RssndwxgUEz4Dee5FEHXKLFu0dP8yLo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "46789728655-188argbvj87olhcgu1hct0l3jlb1lav0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

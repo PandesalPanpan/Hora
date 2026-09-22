@@ -2,6 +2,7 @@ import { ChevronDown, GripVertical, MoreVertical } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../lib/db'
+import { useCurrentOwnerId } from '../../lib/ownership'
 import { activityCounts, moveActivity, saveActivity } from './repository'
 import type { ActivityPreset } from './types'
 import { activityGroups, categoryColors, type ActivityGroup } from './catalog'
@@ -9,7 +10,8 @@ import { activityGroups, categoryColors, type ActivityGroup } from './catalog'
 type PendingMove = { activity: ActivityPreset; category: ActivityGroup; index: number; counts: { sessions: number; plans: number } }
 
 export function ActivityManager({ onClose }: { onClose: () => void }) {
-  const presets = useLiveQuery(() => db.activities.orderBy('order').toArray()) ?? []
+  const ownerId = useCurrentOwnerId()
+  const presets = useLiveQuery(() => db.activities.where('ownerId').equals(ownerId).filter(activity => !activity.deletedAt).sortBy('order'), [ownerId]) ?? []
   const [editing, setEditing] = useState<ActivityPreset | null>(null)
   const [everywhere, setEverywhere] = useState(false)
   const [counts, setCounts] = useState({ sessions: 0, plans: 0 })
