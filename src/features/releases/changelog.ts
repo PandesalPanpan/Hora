@@ -13,6 +13,19 @@ export const currentVersionCode = packageMetadata.androidVersionCode
 
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: '0.3.0',
+    date: '2026-09-22',
+    title: 'Your time, wherever you are',
+    summary: 'Firebase accounts and offline-first sync keep your Hora data available across devices.',
+    changes: [
+      'Sign in with Google or email and password from Settings.',
+      'Keep tracking, planning, and editing locally when you are offline; changes wait safely for a connection.',
+      'Sync activities, sessions, planned blocks, and tasks across devices after reconnecting.',
+      'See whether your account is signed in, known offline, syncing, waiting, or retrying.',
+      'Account ownership keeps one person’s local and cloud data separate from another account on the same device.',
+    ],
+  },
+  {
     version: '0.2.0',
     date: '2026-09-21',
     title: 'A timer that stays with you',
