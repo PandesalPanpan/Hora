@@ -13,6 +13,17 @@ export const currentVersionCode = packageMetadata.androidVersionCode
 
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: '0.3.2',
+    date: '2026-09-22',
+    title: 'A safer Android sign-in',
+    summary: 'The Android release now carries the correct Hora Firebase web configuration into the app.',
+    changes: [
+      'Corrected the production Firebase web API key used by the Android bundle.',
+      'Added release validation for the Hora Firebase project and registered Android client.',
+      'Kept authentication, Google Sign-In, Firestore sync, and Android OAuth configuration unchanged.',
+    ],
+  },
+  {
     version: '0.3.1',
     date: '2026-09-22',
     title: 'Google sign-in on Android',
