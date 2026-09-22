@@ -13,6 +13,16 @@ export const currentVersionCode = packageMetadata.androidVersionCode
 
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: '0.3.1',
+    date: '2026-09-22',
+    title: 'Google sign-in on Android',
+    summary: 'The Android release now includes Firebase configuration for the published signing certificate.',
+    changes: [
+      'Updated the Android Firebase client configuration with the release signing certificate used by Hora updates.',
+      'Kept the existing authentication and offline-first Firestore sync behavior unchanged.',
+    ],
+  },
+  {
     version: '0.3.0',
     date: '2026-09-22',
     title: 'Your time, wherever you are',
