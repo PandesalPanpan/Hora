@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "46789728655-oavtj2s06vh1rkt07c0aljdtcmolsjvl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.izatime.tracker",
+            "certificate_hash": "257c0634bda09955cb559c9cce2b960f56e5c212"
+          }
+        },
+        {
           "client_id": "46789728655-188argbvj87olhcgu1hct0l3jlb1lav0.apps.googleusercontent.com",
           "client_type": 3
         }
