@@ -13,12 +13,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ActiveSession, Activity, CompletedSession } from '../timer/types'
 import type { TimerStartOptions } from '../timer/useTimer'
 import type { PlannedBlock, PlannerCategory } from './types'
+import type { ActivityPreset } from '../activities/types'
 import { sessionSeconds } from '../../lib/time'
 import { db, migrateLegacyLocalStorage } from '../../lib/db'
 import { useCurrentOwnerId } from '../../lib/ownership'
 import './Planner.css'
 import { changeOccurrence, expandRecurringBlock } from './recurrence'
 import { reconcilePlannedBlockReminders } from '../../lib/notifications'
+import { plannedBlockDisplayColor, plannedBlockDisplayTitle } from './presentation'
+import { mixHexColors, readableColorForeground } from '../activities/color'
 
 type PlannerProps = {
   active: ActiveSession | null
@@ -66,6 +69,7 @@ const categories: Record<PlannerCategory, string> = {
 }
 
 const hours = Array.from({ length: 24 }, (_, hour) => hour)
+const EMPTY_PRESETS: ActivityPreset[] = []
 const pad = (value: number) => String(value).padStart(2, '0')
 const dateKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 const sameDay = (left: Date, right: Date) => dateKey(left) === dateKey(right)
@@ -127,7 +131,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
   const [selectedDate, setSelectedDate] = useState(() => params.get('date') ? new Date(`${params.get('date')}T12:00:00`) : new Date())
   const ownerId = useCurrentOwnerId()
   const [planned, setPlanned] = useState<PlannedBlock[]>([])
-  const presets = useLiveQuery(() => db.activities.where('ownerId').equals(ownerId).filter(activity => !activity.deletedAt).sortBy('order'), [ownerId]) ?? []
+  const presets = useLiveQuery(() => db.activities.where('ownerId').equals(ownerId).filter(activity => !activity.deletedAt).sortBy('order'), [ownerId]) ?? EMPTY_PRESETS
   const [editingBlock, setEditingBlock] = useState<PlannedBlock | null>(null)
   const [editScope, setEditScope] = useState<'one' | 'future'>('one')
   const [deleteConfirm, setDeleteConfirm] = useState(false)
@@ -138,13 +142,16 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
   const [inspected, setInspected] = useState<CalendarEvent | null>(null)
   const [now, setNow] = useState(() => new Date())
   const scrollRef = useRef<HTMLDivElement>(null)
+  const draftActivity = draft?.activityId ? presets.find(activity => activity.id === draft.activityId) : undefined
 
   useEffect(() => {
     let cancelled = false
-    void migrateLegacyLocalStorage().then(() => db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).sortBy('startedAt')).then((blocks) => {
+    const load = () => void migrateLegacyLocalStorage().then(() => db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).sortBy('startedAt')).then((blocks) => {
       if (!cancelled) setPlanned(blocks)
     }).catch(() => undefined)
-    return () => { cancelled = true }
+    load()
+    window.addEventListener('iza-data-changed', load)
+    return () => { cancelled = true; window.removeEventListener('iza-data-changed', load) }
   }, [ownerId])
 
   useEffect(() => {
@@ -162,10 +169,10 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
     const plannedEvents = planned.flatMap(expandRecurringBlock).map((block) => ({
       id: block.id,
       kind: 'planned' as const,
-      title: block.title,
+      title: plannedBlockDisplayTitle(block, presets),
       note: block.note,
       category: block.category,
-      color: block.color,
+      color: plannedBlockDisplayColor(block, presets),
       start: new Date(block.startedAt),
       end: new Date(block.finishedAt),
       plannedMinutes: durationMinutes(new Date(block.startedAt), new Date(block.finishedAt)),
@@ -194,7 +201,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
       actualMinutes: Math.max(1, Math.round(elapsed / 60)),
     }] : []
     return [...plannedEvents, ...completedEvents, ...liveEvent]
-  }, [active, completed, elapsed, now, planned])
+  }, [active, completed, elapsed, now, planned, presets])
 
   const linkedPlan = useMemo(() => {
     if (!inspected || inspected.kind === 'planned') return null
@@ -219,18 +226,20 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
 
   const savePlanned = async () => {
     if (saveLock.current) return
-    if (!draft?.title.trim()) return
+    if (!draft) return
+    if (!draft.title.trim() && !draft.activityId) { setSaveError('Enter a title or choose an activity.'); return }
     const start = combineDateTime(draft.date, draft.startTime)
     const end = combineDateTime(draft.date, draft.endTime)
     if (end <= start) end.setDate(end.getDate() + 1)
     if (draft.repeat !== 'none' && (!draft.endsOn || draft.endsOn < draft.date || (draft.repeat === 'weekdays' && !draft.weekdays.length))) { setSaveError('Choose repeat days and an end date on or after the first block.'); return }
+    const selectedActivity = presets.find(activity => activity.id === draft.activityId)
     const block: PlannedBlock = {
       activityId: draft.activityId,
       id: crypto.randomUUID(),
       title: draft.title.trim(),
       note: draft.note.trim() || undefined,
       category: draft.category,
-      color: categories[draft.category],
+      color: selectedActivity?.color ?? categories[draft.category],
       startedAt: start.toISOString(),
       finishedAt: end.toISOString(),
       reminderMinutesBefore: draft.reminderMinutesBefore ?? undefined,
@@ -270,11 +279,13 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
   }
 
   const startViaTimeflow = () => {
-    if (!draft?.title.trim() || active) return
+    if (!draft || active) return
+    const selectedActivity = draft.activityId ? presets.find(activity => activity.id === draft.activityId) : undefined
+    if (!draft.title.trim() && !selectedActivity) return
     onStart({
-      id: `planner-${crypto.randomUUID()}`,
-      name: draft.title.trim(),
-      color: categories[draft.category],
+      id: selectedActivity?.id ?? `planner-${crypto.randomUUID()}`,
+      name: selectedActivity?.name ?? draft.title.trim(),
+      color: selectedActivity?.color ?? categories[draft.category],
     }, null, { timerMode: 'flowtime', note: draft.note.trim() || undefined })
     setDraft(null)
   }
@@ -411,7 +422,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
                       <div
                         className={`calendar-event ${event.kind}`}
                         key={`${event.kind}-${event.id}`}
-                        style={{ '--event-color': event.color, top, height, left: `calc(${lane / lanes * 100}% - ${(hidden.length ? 64 : 0) * lane / lanes}px + 3px)`, width: `calc(${100 / lanes}% - ${(hidden.length ? 64 : 0) / lanes + 6}px)` } as React.CSSProperties}
+                        style={{ '--event-color': event.color, '--event-foreground': readableColorForeground(event.kind === 'live' ? mixHexColors(event.color, '#6C203E', 0.88) ?? event.color : event.color), top, height, left: `calc(${lane / lanes * 100}% - ${(hidden.length ? 64 : 0) * lane / lanes}px + 3px)`, width: `calc(${100 / lanes}% - ${(hidden.length ? 64 : 0) / lanes + 6}px)` } as React.CSSProperties}
                       >
                         {event.kind === 'planned' && planned.some(block => block.id === event.id && !block.recurrence) && <><i className="resize-handle top" onPointerDown={(pointer) => resizePlanned(pointer, event.id, 'start')} /><i className="resize-handle bottom" onPointerDown={(pointer) => resizePlanned(pointer, event.id, 'end')} /></>}
                         <button className="event-open" type="button" onClick={() => { setDeleteConfirm(false); setEditScope('one'); setInspected(event) }}>
@@ -444,8 +455,9 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
           <form className="quick-add-popover" onSubmit={(event) => { event.preventDefault(); savePlanned() }}>
             <header><div><span>New time block</span><strong>{new Date(`${draft.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</strong></div><button type="button" onClick={() => setDraft(null)} aria-label="Close add block"><X /></button></header>
             {editingBlock?.recurrence && <label>Apply changes<select value={editScope} onChange={event => setEditScope(event.target.value as 'one' | 'future')}><option value="one">Only this block</option><option value="future">This and future blocks</option></select></label>}
-            <label>Activity<select value={draft.activityId ?? ''} onChange={event => { const preset = presets.find(item => item.id === event.target.value); setDraft({ ...draft, activityId: preset?.id, title: preset?.name ?? draft.title, category: preset ? preset.category === 'Life' ? 'Others' : preset.category : draft.category }) }}><option value="">Choose an activity (optional)</option>{presets.filter(item => !item.archived).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label>What are you planning?<input autoFocus value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="e.g. Review biology notes" /></label>
+            <label>Activity<select value={draft.activityId ?? ''} onChange={event => { const preset = presets.find(item => item.id === event.target.value); setDraft(current => current ? { ...current, activityId: preset?.id, category: preset ? preset.category === 'Life' ? 'Others' : preset.category : current.category } : current) }}><option value="">Choose an activity (optional)</option>{presets.filter(item => !item.archived).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label>What are you planning?<input autoFocus value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder={draftActivity?.name ?? 'e.g. Review biology notes'} /></label>
+            {draft.activityId && !draft.title.trim() && <small className="planned-title-hint">Leave the title empty to show {draftActivity?.name ?? 'the Activity name'}.</small>}
             <label>Note <span>(optional)</span><textarea value={draft.note} onChange={(event) => setDraft({ ...draft, note: event.target.value })} placeholder="Add details you will need later" /></label>
             <label>Category<select value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as PlannerCategory })}>{Object.keys(categories).map((category) => <option key={category}>{category}</option>)}</select></label>
             <label>Date<input type="date" required value={draft.date} onChange={event => setDraft({ ...draft, date: event.target.value })} /></label>
@@ -455,7 +467,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
             {draft.repeat !== 'none' && <label>Ends on<input required type="date" min={draft.date} value={draft.endsOn} onChange={(event) => setDraft({ ...draft, endsOn: event.target.value })} /></label>}
             <label>Remind me<select aria-label="Remind me" value={draft.reminderMinutesBefore === null ? '' : String(draft.reminderMinutesBefore)} onChange={(event) => setDraft({ ...draft, reminderMinutesBefore: event.target.value === '' ? null : Number(event.target.value) })}><option value="">No reminder</option><option value="0">At start time</option><option value="5">5 minutes before</option><option value="10">10 minutes before</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option></select></label>
             {saveError && <p role="alert">{saveError}</p>}
-            <div className="popover-actions"><button type="submit" disabled={saving}>Save as planned</button><button type="button" disabled={Boolean(active) || !draft.title.trim()} onClick={startViaTimeflow}><TimerReset /> Start via Timeflow</button></div>
+            <div className="popover-actions"><button type="submit" disabled={saving}>Save as planned</button><button type="button" disabled={Boolean(active) || (!draft.title.trim() && !draft.activityId)} onClick={startViaTimeflow}><TimerReset /> Start via Timeflow</button></div>
           </form>
         </div>
       )}
@@ -471,7 +483,7 @@ export function Planner({ active, completed, elapsed, onFinish, onStart, onRevie
             {inspectBlock && <div className="planned-edit-actions"><button type="button" onClick={editPlanned}>Edit planned block</button>{!deleteConfirm ? <button type="button" onClick={() => setDeleteConfirm(true)}>Delete planned block</button> : <><p>Delete this planned block?</p>{inspectBlock.recurrence && <label>Delete<select value={editScope} onChange={event => setEditScope(event.target.value as 'one' | 'future')}><option value="one">Only this block</option><option value="future">This and future blocks</option></select></label>}<button type="button" disabled={saving} onClick={() => void deletePlanned()}>Confirm delete</button><button type="button" onClick={() => setDeleteConfirm(false)}>Keep block</button></>}</div>}
             {inspected.kind === 'completed' && onReview && <button className="stop-live-button" type="button" onClick={() => { const session = completed.find(item => item.id === inspected.id); if (session) { setInspected(null); onReview(session) } }}>Edit time log</button>}
             {inspected.kind === 'live' && <button className="stop-live-button" type="button" onClick={() => { onFinish(); setInspected(null) }}><Square fill="currentColor" /> Stop Timeflow</button>}
-            {inspected.kind === 'planned' && <button className="stop-live-button" type="button" disabled={Boolean(active)} onClick={() => { onStart({ id: `planner-${inspected.id}`, name: inspected.title, color: inspected.color }, null, { plannedBlockId: inspected.id, timerMode: 'flowtime', note: inspected.note }); setInspected(null) }}><TimerReset /> Start this block</button>}
+            {inspected.kind === 'planned' && <button className="stop-live-button" type="button" disabled={Boolean(active)} onClick={() => { const linkedActivity = inspectBlock?.activityId ? presets.find(activity => activity.id === inspectBlock.activityId) : undefined; onStart({ id: linkedActivity?.id ?? `planner-${inspected.id}`, name: linkedActivity?.name ?? inspected.title, color: linkedActivity?.color ?? inspected.color }, null, { plannedBlockId: inspected.id, timerMode: 'flowtime', note: inspected.note }); setInspected(null) }}><TimerReset /> Start this block</button>}
           </section>
         </div>
       )}

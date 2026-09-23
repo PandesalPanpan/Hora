@@ -147,6 +147,31 @@ describe('notification capability', () => {
     expect(plannedReminderNotificationId('series:2026-09-23')).not.toBe(plannedReminderNotificationId('series:2026-09-24'))
   })
 
+  it('uses an Activity name only as a reminder fallback and refreshes it after rename', async () => {
+    const { reconcilePlannedBlockReminders } = await import('./notifications')
+    await db.activities.put({
+      id:'study',name:'Study',normalizedName:'study',category:'Focus',color:'#6366F1',archived:false,order:0,
+      createdAt:new Date(baseTime).toISOString(),updatedAt:new Date(baseTime).toISOString(),
+    })
+    await db.plannedBlocks.put({
+      id:'fallback-plan',activityId:'study',title:'',category:'Focus',color:'#B92F60',
+      startedAt:new Date(baseTime + DAY * 2).toISOString(),
+      finishedAt:new Date(baseTime + DAY * 2 + 60 * 60_000).toISOString(),
+      reminderMinutesBefore:10,
+    })
+
+    await reconcilePlannedBlockReminders(baseTime)
+    expect(scheduled.value.at(-1)?.title).toBe('Study')
+    expect((await db.plannedBlocks.get('fallback-plan'))?.title).toBe('')
+
+    await db.activities.update('study',{name:'Academics',normalizedName:'academics'})
+    await reconcilePlannedBlockReminders(baseTime)
+    expect(pending.value).toHaveLength(1)
+    expect(pending.value[0].title).toBe('Academics')
+    expect(scheduled.value).toHaveLength(2)
+    expect((await db.plannedBlocks.get('fallback-plan'))?.title).toBe('')
+  })
+
   it('routes typed timer and planner taps without changing timer state', async () => {
     const { notificationRouteForTap } = await import('./notifications')
     expect(notificationRouteForTap({ notification: { extra: { owner: 'iza', kind: 'timeflow-milestone' } } })).toBe('#/today')

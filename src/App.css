@@ -135,7 +135,7 @@ button { touch-action: manipulation; }
 .history-timeline time { color: var(--hora-muted); font-size: 9px; }
 .history-session strong { margin-top: 4px; font-size: 13px; }
 .history-session span { color: var(--hora-muted); font-size: 10px; }
-.history-session > b { min-width: 72px; padding: 8px 12px; border-radius: 17px; background: color-mix(in srgb, var(--session-color) 32%, white); font-size: 12px; text-align: center; }
+.history-session > b { min-width: 72px; padding: 8px 12px; border-radius: 17px; background: color-mix(in srgb, var(--session-color) 32%, white); color: var(--session-badge-foreground, var(--hora-ink)); font-size: 12px; text-align: center; }
 .soft-empty { min-height: 110px; border-radius: 22px; display: grid; place-content: center; color: var(--hora-muted); background: white; text-align: center; }
 .soft-empty strong { color: var(--hora-ink); font-family: 'Poppins', sans-serif; }
 .soft-empty span { margin-top: 4px; font-size: 11px; }
@@ -368,7 +368,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .today-feed-row time { color: var(--hora-muted); font-size: 9px; }
 .today-feed-row strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .today-feed-row small { overflow: hidden; color: var(--hora-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.today-feed-row > b { min-width: 54px; padding: 7px 9px; border-radius: 999px; background: color-mix(in srgb, var(--feed-color) 25%, white); color: var(--hora-ink); font-size: 11px; text-align: center; }
+.today-feed-row > b { min-width: 54px; padding: 7px 9px; border-radius: 999px; display: inline-block; background: color-mix(in srgb, var(--feed-color) 25%, white); color: var(--feed-badge-foreground, var(--hora-ink)); font-size: 11px; text-align: center; }
 .today-feed-row.live { border-color: var(--feed-color); }
 .today-feed-row.planned { background: var(--hora-paper); border-style: dashed; }
 .today-feed a { min-height: 44px; display: flex; align-items: center; color: var(--hora-ink); font-weight: 600; }
@@ -457,6 +457,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .activity-category-readonly { min-height: 74px; margin-bottom: 16px; padding: 9px 13px; border: 1px solid var(--hora-line); border-radius: 20px; display: grid; background: white; }
 .activity-category-readonly span, .activity-category-readonly small { color: var(--hora-muted); font-size: 9px; }
 .activity-category-readonly strong { margin-top: 2px; font-size: 13px; }
+.activity-color-picker { min-width: 0; margin: 0 0 16px; padding: 0; border: 0; display: grid; gap: 10px; }
+.activity-color-picker legend { margin-bottom: 7px; padding: 0; font-size: 12px; font-weight: 700; }
+.activity-color-preview { min-width: 0; min-height: 62px; padding: 8px 10px; border: 1.5px solid var(--hora-line); border-radius: 18px; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 9px; background: white; }
+.activity-color-preview-swatch { width: 42px; height: 42px; border: 1.5px solid rgba(92,59,54,.22); border-radius: 14px; }
+.activity-color-preview-copy { min-width: 0; display: grid; gap: 2px; }
+.activity-color-preview-copy strong { font-size: 10px; }
+.activity-color-preview-copy code { color: var(--hora-muted); font: 600 10px/1.3 'Poppins', sans-serif; }
+.activity-color-preview-chip { max-width: 108px; min-height: 34px; padding: 7px 10px; border: 1px solid rgba(92,59,54,.35); border-radius: 13px; overflow: hidden; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.activity-color-presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; }
+.activity-color-preset { width: 100%; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 15px; display: grid; place-items: center; background: transparent; cursor: pointer; }
+.activity-color-preset > span { width: 42px; height: 42px; border: 1px solid rgba(92,59,54,.24); border-radius: 14px; display: grid; place-items: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+.activity-color-preset.selected > span { box-shadow: 0 0 0 2px white, 0 0 0 4px var(--hora-raspberry); }
+.activity-color-preset svg { width: 19px; height: 19px; stroke-width: 3; }
+.activity-color-native-picker { min-width: 0; min-height: 56px; padding: 7px 12px; border: 1.5px solid var(--hora-line); border-radius: 17px; display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 9px; position: relative; background: white; cursor: pointer; }
+.activity-color-native-picker:focus-within { outline: 3px solid #276b88; outline-offset: 3px; }
+.activity-color-native-icon { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; color: var(--hora-raspberry); background: var(--hora-rose); }
+.activity-color-native-icon svg { width: 18px; height: 18px; }
+.activity-color-native-picker > span:last-of-type { min-width: 0; display: grid; gap: 1px; }
+.activity-color-native-picker strong { font-size: 10px; }
+.activity-color-native-picker small { color: var(--hora-muted); font-size: 9px; }
+.activity-color-native-picker input { width: 100%; height: 100%; position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.activity-hex-field { min-width: 0; display: grid; grid-template-columns: 1fr; gap: 5px; }
+.activity-hex-field > span { font-size: 10px; font-weight: 700; }
+.activity-hex-field input { width: 100%; min-height: 46px; padding: 9px 12px; border: 1.5px solid var(--hora-line); border-radius: 14px; color: var(--hora-ink); background: white; font: 600 13px/1.2 'Poppins', sans-serif; letter-spacing: .04em; }
+.activity-hex-field input[aria-invalid='true'] { border-color: var(--hora-raspberry); }
+.activity-hex-field small { color: var(--hora-muted); font-size: 9px; line-height: 1.4; }
+.planned-title-hint { margin: -10px 0 4px; color: var(--hora-muted); font-size: 10px; line-height: 1.4; }
 .activity-manager-body { display: grid; gap: 16px; }
 .activity-manager .create-activity { margin: 0; }
 .activity-groups { display: grid; gap: 14px; }

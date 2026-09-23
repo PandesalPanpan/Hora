@@ -9,6 +9,7 @@ import { CalendarDays, ChevronRight, Pause, Play, SlidersHorizontal, Square } fr
 import { useEffect, useMemo, useState } from 'react'
 import clockMascot from '../assets/hora-clock.png'
 import { activityGroups, categoryColors, type ActivityGroup } from '../features/activities/catalog'
+import { mixHexColors, readableColorForeground } from '../features/activities/color'
 import type { ActiveSession, Activity, CompletedSession } from '../features/timer/types'
 import type { TimerStartOptions } from '../features/timer/useTimer'
 import { formatCompactDuration, isSameLocalDay, sessionSeconds } from '../lib/time'
@@ -44,7 +45,7 @@ export function TimeflowPage({ onReview, active, completed, elapsed, start, paus
   const [activityError, setActivityError] = useState('')
   useEffect(() => { void ensureActivities().catch(() => setActivityError('Activities could not be loaded. Reopen Today to try again.')) }, [])
   const plans = useLiveQuery(() => db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).toArray(), [ownerId]) ?? []
-  const feed = todayFeed(active, completed, plans)
+  const feed = todayFeed(active, completed, plans, new Date(), 3, presets ?? [])
   const [group, setGroup] = useState<ActivityGroup>('Focus')
   const [selected, setSelected] = useState<Activity>(activityGroups.Focus[0])
   const [goal, setGoal] = useState<number | null>(25)
@@ -175,7 +176,7 @@ export function TimeflowPage({ onReview, active, completed, elapsed, start, paus
                 className={`today-feed-row ${row.kind.toLowerCase()}`}
                 type="button"
                 key={row.id}
-                style={{ '--feed-color': row.color } as React.CSSProperties}
+                style={{ '--feed-color': row.color, '--feed-badge-foreground': readableColorForeground(mixHexColors(row.color, '#FFFFFF', 0.25) ?? '#FFFFFF') } as React.CSSProperties}
                 onClick={() => { if (row.session) onReview(row.session); else if (row.kind === 'Live') { document.querySelector<HTMLElement>('.timer-column')?.scrollIntoView({ block: 'start' }); document.querySelector<HTMLButtonElement>('.timer-actions button')?.focus() } else window.location.hash = row.destination }}
               >
                 <i aria-hidden="true" />

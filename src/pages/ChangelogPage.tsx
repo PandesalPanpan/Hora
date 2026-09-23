@@ -1,5 +1,5 @@
 import { ArrowLeft, Sparkles } from 'lucide-react'
-import { currentVersion, releaseNotes } from '../features/releases/changelog'
+import { availableReleaseNotes, currentVersion } from '../features/releases/changelog'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'long' })
 
@@ -11,7 +11,7 @@ export function ChangelogPage({ onBack }: { onBack: () => void }) {
         <div><span>Version {currentVersion}</span><h1>What’s new</h1><p>A gentle record of how Iza is growing.</p></div>
       </header>
       <div className="release-list">
-        {releaseNotes.map((release, index) => (
+        {availableReleaseNotes.map((release, index) => (
           <article className="release-card" key={release.version}>
             <div className="release-marker"><Sparkles aria-hidden="true" /></div>
             <header><span>{index === 0 ? 'Latest' : 'Earlier'} · v{release.version}</span><time dateTime={release.date}>{dateFormatter.format(new Date(`${release.date}T12:00:00`))}</time></header>

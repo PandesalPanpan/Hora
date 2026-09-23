@@ -25,6 +25,9 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -56,12 +59,24 @@ jobs:
       - name: Validate release version
         id: version
         shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            tag='${{ inputs.tag }}'
+            tag="${RELEASE_TAG}"
           else
             tag="${GITHUB_REF_NAME}"
+          fi
+          if ! git check-ref-format "refs/tags/${tag}"; then
+            echo "Invalid release tag: ${tag}" >&2
+            exit 1
+          fi
+          tag_commit="$(git rev-parse --verify "refs/tags/${tag}^{commit}")"
+          checked_out_commit="$(git rev-parse HEAD)"
+          if [[ "${tag_commit}" != "${checked_out_commit}" ]]; then
+            echo "Checked-out source does not match release tag ${tag}." >&2
+            exit 1
           fi
           version="$(node -p "require('./package.json').version")"
           if [[ "${tag}" != "v${version}" ]]; then

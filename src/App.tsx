@@ -8,6 +8,7 @@ import { CompletionSheet } from './components/CompletionSheet'
 import { UpdateBanner } from './components/UpdateBanner'
 import { AuthProvider } from './features/auth/AuthProvider'
 import { useAuth } from './features/auth/context'
+import { readableColorForeground } from './features/activities/color'
 import { Planner } from './features/planner/Planner'
 import { startCloudSync, stopCloudSync } from './features/sync/engine'
 import { SyncIndicator } from './features/sync/SyncIndicator'
@@ -164,7 +165,7 @@ function AppContent() {
 
           <UpdateBanner state={updates.state} onLater={updates.later} onDownload={() => void updates.download()} onInstall={() => void updates.install()} onOpenInstallSettings={() => void updates.openInstallSettings()} />
 
-          {timer.active && route !== '/today' && <button className="active-session-dock" type="button" onClick={() => navigate('/today')}><span style={{ backgroundColor: timer.active.activity.color }}><Clock3 /></span><span><strong>{timer.active.activity.name}</strong><small>{timer.active.status === 'paused' ? 'Paused' : 'Tracking now'}</small></span><b>{formatDuration(timer.elapsed)}</b></button>}
+          {timer.active && route !== '/today' && <button className="active-session-dock" type="button" onClick={() => navigate('/today')}><span style={{ backgroundColor: timer.active.activity.color, color: readableColorForeground(timer.active.activity.color) }}><Clock3 /></span><span><strong>{timer.active.activity.name}</strong><small>{timer.active.status === 'paused' ? 'Paused' : 'Tracking now'}</small></span><b>{formatDuration(timer.elapsed)}</b></button>}
 
           <section className="content-panel">
             {route === '/today' && <TimeflowPage onReview={setCompletedReview} {...timer} finish={finishWithReview} />}

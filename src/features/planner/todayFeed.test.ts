@@ -16,3 +16,9 @@ it('expands today recurrence and excludes past plans and other local days', () =
   expect(todayFeed(null,[],[plan],now)[0].id).toBe('series:2026-09-15')
   expect(todayFeed(null,[],[plan],new Date(2026,8,15,18))).toEqual([])
 })
+it('shows an Activity name and current color for a blank-title planned block without saving the fallback', () => {
+  const plan = {id:'fallback',title:'',activityId:'study',category:'Focus' as const,color:'#B92F60',startedAt:iso(15,16),finishedAt:iso(15,17)}
+  const [row] = todayFeed(null,[],[plan],now,3,[{id:'study',name:'Study',color:'#22c55e'}])
+  expect(row).toMatchObject({title:'Study',color:'#22C55E'})
+  expect(plan.title).toBe('')
+})

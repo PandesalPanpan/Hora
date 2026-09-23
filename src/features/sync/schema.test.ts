@@ -7,6 +7,8 @@ import {
   versionCompare,
 } from './schema'
 import type { Task } from '../tasks/types'
+import type { ActivityPreset } from '../activities/types'
+import type { PlannedBlock } from '../planner/types'
 
 const task: Task = {
   id: 'task-1',
@@ -72,5 +74,23 @@ describe('cloud sync schema boundary', () => {
     expect(deserializeFromCloud(tombstone)).toBeNull()
     expect(isCloudEnvelope(tombstone)).toBe(true)
     expect(isCloudEnvelope({ ...tombstone, ownerId: undefined })).toBe(false)
+  })
+
+  it('normalizes Activity colors across cloud writes and reads while preserving planned titles', () => {
+    const activity: ActivityPreset = {
+      id:'study',name:'Study',normalizedName:'study',category:'Focus',color:'#22c55e',archived:false,order:0,
+      ownerId:'user:alice',deviceId:'device-a',syncSchemaVersion:1,createdAt:'2026-09-22T08:00:00.000Z',updatedAt:'2026-09-22T08:05:00.000Z',deletedAt:null,
+    }
+    const activityEnvelope = serializeForCloud('activities',activity,'user:alice','device-a')
+    expect(activityEnvelope.payload?.color).toBe('#22C55E')
+    const legacyRemote = { ...activityEnvelope, payload: { ...activityEnvelope.payload, color:'#22c55e' } }
+    expect(deserializeFromCloud<ActivityPreset>(legacyRemote)?.color).toBe('#22C55E')
+
+    const plan: PlannedBlock = {
+      id:'plan',activityId:'study',title:'Biology Class',category:'Focus',color:'#B92F60',
+      startedAt:'2026-09-23T09:00:00.000Z',finishedAt:'2026-09-23T10:00:00.000Z',
+    }
+    const planEnvelope = serializeForCloud('plannedBlocks',plan,'user:alice','device-a')
+    expect(deserializeFromCloud<PlannedBlock>(planEnvelope)?.title).toBe('Biology Class')
   })
 })

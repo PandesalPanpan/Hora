@@ -3,6 +3,7 @@ import { getCurrentOwnerId, getInstallationId } from '../../lib/ownership'
 import { activityGroups } from './catalog'
 import type { ActivityGroup } from './catalog'
 import { normalizeActivityName, type ActivityPreset } from './types'
+import { normalizeHexColor } from './color'
 export async function ensureActivities() {
   const ownerId = getCurrentOwnerId()
   await db.transaction('rw', db.activities, db.outbox, db.syncTombstones, async () => {
@@ -11,7 +12,7 @@ export async function ensureActivities() {
     const missing: ActivityPreset[] = []
     for (const [category, items] of Object.entries(activityGroups)) for (const item of items) {
       if (item.id === 'custom' || existing.some(value => value.id === item.id || value.normalizedName === normalizeActivityName(item.name))) continue
-      missing.push({ ...item, normalizedName: normalizeActivityName(item.name), category: category as ActivityPreset['category'], archived: false, order: existing.length + missing.length, builtIn: true, createdAt: now, updatedAt: now, ownerId, deviceId: getInstallationId(), deletedAt: null, syncSchemaVersion: 1 })
+      missing.push({ ...item, color: normalizeHexColor(item.color) ?? item.color, normalizedName: normalizeActivityName(item.name), category: category as ActivityPreset['category'], archived: false, order: existing.length + missing.length, builtIn: true, createdAt: now, updatedAt: now, ownerId, deviceId: getInstallationId(), deletedAt: null, syncSchemaVersion: 1 })
     }
     if (missing.length) await db.activities.bulkAdd(missing)
   })
@@ -23,7 +24,9 @@ export async function activityCounts(id: string) {
 }
 export async function saveActivity(preset: ActivityPreset, everywhere = false) {
   const ownerId = getCurrentOwnerId()
-  const next = { ...preset, name: preset.name.trim(), normalizedName: normalizeActivityName(preset.name), ownerId: preset.ownerId ?? ownerId, deviceId: preset.deviceId ?? getInstallationId(), updatedAt: new Date().toISOString() }
+  const color = normalizeHexColor(preset.color)
+  if (!color) throw new Error('Enter a valid HEX color.')
+  const next = { ...preset, name: preset.name.trim(), normalizedName: normalizeActivityName(preset.name), color, ownerId: preset.ownerId ?? ownerId, deviceId: preset.deviceId ?? getInstallationId(), updatedAt: new Date().toISOString() }
   if (!next.name) throw new Error('Enter an activity name.')
   await db.transaction('rw', db.activities, db.sessions, db.plannedBlocks, db.outbox, db.syncTombstones, async () => {
     const match = await db.activities.where('ownerId').equals(ownerId).filter(item => item.normalizedName === next.normalizedName).first()
@@ -31,7 +34,7 @@ export async function saveActivity(preset: ActivityPreset, everywhere = false) {
     await db.activities.put(next)
     if (everywhere) {
       await db.sessions.where('ownerId').equals(ownerId).filter(s => s.activity.id === next.id && s.status === 'completed' && !s.deletedAt).modify({ activity: { id: next.id, name: next.name, color: next.color, category: next.category } })
-      await db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => block.activityId === next.id && !block.deletedAt).modify({ title: next.name, color: next.color, category: next.category === 'Life' ? 'Others' : next.category })
+      await db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => block.activityId === next.id && !block.deletedAt).modify({ color: next.color, category: next.category === 'Life' ? 'Others' : next.category })
     }
   })
   window.dispatchEvent(new Event('iza-data-changed'))

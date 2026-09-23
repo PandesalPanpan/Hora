@@ -3,6 +3,7 @@ import type { PlannedBlock } from '../planner/types'
 import type { StoredSession } from '../../lib/db'
 import type { Task } from '../tasks/types'
 import type { SyncMetadata } from '../../lib/syncTypes'
+import { normalizeHexColor } from '../activities/color'
 
 export const CLOUD_SCHEMA_VERSION = 1
 export const syncEntityTypes = ['sessions', 'plannedBlocks', 'tasks', 'activities'] as const
@@ -69,7 +70,11 @@ export function serializeForCloud(entityType: SyncEntityType, record: SyncRecord
   const source = record as SyncRecord & SyncMetadata
   const createdAt = source.createdAt ?? now
   const updatedAt = source.updatedAt ?? now
-  const payload = Object.fromEntries(Object.entries(source).filter(([key]) => !metadataKeys.has(key)))
+  const payloadSource: Record<string, unknown> = { ...source }
+  if (entityType === 'activities' && typeof payloadSource.color === 'string') {
+    payloadSource.color = normalizeHexColor(payloadSource.color) ?? payloadSource.color
+  }
+  const payload = Object.fromEntries(Object.entries(payloadSource).filter(([key]) => !metadataKeys.has(key)))
   return {
     schemaVersion: CLOUD_SCHEMA_VERSION,
     recordType: entityType,
@@ -99,8 +104,11 @@ export function serializeTombstone(entityType: SyncEntityType, ownerId: string, 
 
 export function deserializeFromCloud<T extends Record<string, unknown> = Record<string, unknown>>(envelope: CloudEnvelope): T | null {
   if (envelope.deletedAt || !envelope.payload) return null
+  const payload = envelope.recordType === 'activities' && typeof envelope.payload.color === 'string'
+    ? { ...envelope.payload, color: normalizeHexColor(envelope.payload.color) ?? envelope.payload.color }
+    : envelope.payload
   return {
-    ...envelope.payload,
+    ...payload,
     id: envelope.id,
     ownerId: envelope.ownerId,
     deviceId: envelope.deviceId,

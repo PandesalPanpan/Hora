@@ -4,6 +4,7 @@ export type PlannerCategory = 'Focus' | 'Leisure' | 'Others' | 'Rest'
 
 export type PlannedBlock = {
   id: string
+  /** Empty means the linked Activity name is shown as a presentation fallback. */
   title: string
   note?: string
   category: PlannerCategory

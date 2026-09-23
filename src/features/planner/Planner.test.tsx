@@ -2,7 +2,9 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, expect, it, vi } from 'vitest'
 import { Planner } from './Planner'
 import { db } from '../../lib/db'
+import type { ActivityPreset } from '../activities/types'
 afterEach(cleanup)
+const study: ActivityPreset = {id:'study',name:'Study',normalizedName:'study',category:'Focus',color:'#6366F1',archived:false,order:0,createdAt:'2026-09-15T00:00:00.000Z',updatedAt:'2026-09-15T00:00:00.000Z'}
 it('makes every hidden collision reachable in the overflow sheet', async () => {
   window.history.replaceState(null,'','#/planner?view=day&date=2026-09-15')
   Object.defineProperty(window,'innerWidth',{value:320,configurable:true})
@@ -51,4 +53,56 @@ it('persists an optional planned-block reminder without changing the block model
   await screen.findByRole('button', { name: 'Review biology notes Planned' })
   expect(await db.plannedBlocks.count()).toBe(1)
   expect((await db.plannedBlocks.toArray())[0]).toMatchObject({ title: 'Review biology notes', reminderMinutesBefore: 15 })
+})
+
+it('keeps a typed custom title when the Activity is selected afterward', async () => {
+  window.history.replaceState(null,'','#/planner?view=day&date=2026-09-15')
+  await db.activities.put({...study})
+  render(<Planner active={null} completed={[]} elapsed={0} onFinish={vi.fn()} onStart={vi.fn()}/> )
+  fireEvent.click(screen.getByRole('button',{name:'Add block'}))
+  fireEvent.change(await screen.findByLabelText('What are you planning?'),{target:{value:'Biology Class'}})
+  await screen.findByRole('option',{name:'Study'})
+  fireEvent.change(screen.getByLabelText('Activity'),{target:{value:'study'}})
+  fireEvent.click(screen.getByRole('button',{name:'Save as planned'}))
+
+  expect(await screen.findByRole('button',{name:/Biology Class Planned/})).toBeInTheDocument()
+  expect(await db.plannedBlocks.toArray()).toMatchObject([{title:'Biology Class',activityId:'study',color:'#6366F1'}])
+})
+
+it('keeps the exact Activity-then-custom-title entry order from the reported scenario', async () => {
+  window.history.replaceState(null,'','#/planner?view=day&date=2026-09-15')
+  await db.activities.put({...study})
+  render(<Planner active={null} completed={[]} elapsed={0} onFinish={vi.fn()} onStart={vi.fn()}/> )
+  fireEvent.click(screen.getByRole('button',{name:'Add block'}))
+  await screen.findByRole('option',{name:'Study'})
+  fireEvent.change(screen.getByLabelText('Activity'),{target:{value:'study'}})
+  fireEvent.change(screen.getByLabelText('What are you planning?'),{target:{value:'Biology Class'}})
+  fireEvent.click(screen.getByRole('button',{name:'Save as planned'}))
+
+  expect(await screen.findByRole('button',{name:/Biology Class Planned/})).toBeInTheDocument()
+  expect((await db.plannedBlocks.toArray())[0]).toMatchObject({title:'Biology Class',activityId:'study'})
+})
+
+it('stores an empty title and displays the linked Activity name as a fallback', async () => {
+  window.history.replaceState(null,'','#/planner?view=day&date=2026-09-15')
+  await db.activities.put({...study})
+  render(<Planner active={null} completed={[]} elapsed={0} onFinish={vi.fn()} onStart={vi.fn()}/> )
+  fireEvent.click(screen.getByRole('button',{name:'Add block'}))
+  await screen.findByRole('option',{name:'Study'})
+  fireEvent.change(screen.getByLabelText('Activity'),{target:{value:'study'}})
+  expect(screen.getByLabelText('What are you planning?')).toHaveAttribute('placeholder','Study')
+  fireEvent.click(screen.getByRole('button',{name:'Save as planned'}))
+
+  expect(await screen.findByRole('button',{name:/Study Planned/})).toBeInTheDocument()
+  expect((await db.plannedBlocks.toArray())[0]).toMatchObject({title:'',activityId:'study',color:'#6366F1'})
+})
+
+it('uses an updated linked Activity color without changing a custom title', async () => {
+  window.history.replaceState(null,'','#/planner?view=day&date=2026-09-15')
+  await db.activities.put({...study,color:'#22C55E'})
+  await db.plannedBlocks.put({id:'biology',activityId:'study',title:'Biology Class',category:'Focus',color:'#6366F1',startedAt:new Date(2026,8,15,9).toISOString(),finishedAt:new Date(2026,8,15,10).toISOString()})
+  render(<Planner active={null} completed={[]} elapsed={0} onFinish={vi.fn()} onStart={vi.fn()}/> )
+  const eventButton = await screen.findByRole('button',{name:/Biology Class Planned/})
+  expect(eventButton.closest('.calendar-event')).toHaveStyle({'--event-color':'#22C55E'})
+  expect((await db.plannedBlocks.get('biology'))?.title).toBe('Biology Class')
 })

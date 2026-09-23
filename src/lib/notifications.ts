@@ -5,6 +5,7 @@ import { activeSessionSeconds } from './time'
 import { db, loadDatabaseState, migrateLegacyLocalStorage } from './db'
 import { getCurrentOwnerId } from './ownership'
 import { expandRecurringBlock } from '../features/planner/recurrence'
+import { plannedBlockDisplayTitle } from '../features/planner/presentation'
 import type { PlannedBlock } from '../features/planner/types'
 import { cancelNativeTimerMilestone, isNativeTimerBridgeAvailable, syncNativeTimer } from '../features/timer/native'
 
@@ -310,12 +311,12 @@ function plannerOccurrences(blocks: PlannedBlock[], nowMs: number): ReminderOccu
   })
 }
 
-function plannerNotification(occurrence: ReminderOccurrence): LocalNotificationSchema {
+function plannerNotification(occurrence: ReminderOccurrence, title: string): LocalNotificationSchema {
   const { block, reminderAt: at } = occurrence
   const occurrenceDate = block.occurrenceDate ?? new Date(block.startedAt).toISOString().slice(0, 10)
   return {
     id: plannedReminderNotificationId(block.id),
-    title: block.title,
+    title,
     body: block.reminderMinutesBefore ? `Starts in ${block.reminderMinutesBefore} minutes.` : 'Starts now.',
     channelId: notificationChannels.planner,
     smallIcon: 'ic_stat_hora',
@@ -358,7 +359,12 @@ export async function schedulePlannedBlockReminder(block: PlannedBlock, options:
   if (!permitted) return false
   await ensureNotificationChannels().catch(() => undefined)
   try {
-    await LocalNotifications.schedule({ notifications: [plannerNotification({ block, reminderAt: at })] })
+    const ownerId = getCurrentOwnerId()
+    const activity = block.activityId
+      ? await db.activities.where('ownerId').equals(ownerId).filter(item => item.id === block.activityId && !item.deletedAt).first()
+      : undefined
+    const title = plannedBlockDisplayTitle(block, activity ? [activity] : [])
+    await LocalNotifications.schedule({ notifications: [plannerNotification({ block, reminderAt: at }, title)] })
     dispatchStatusChanged()
     return true
   } catch {
@@ -417,7 +423,12 @@ export async function reconcilePlannedBlockReminders(nowMs = Date.now(), options
   if (!Capacitor.isNativePlatform()) return
   await migrateLegacyLocalStorage()
   const ownerId = getCurrentOwnerId()
-  const [blocks, pending] = await Promise.all([db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).toArray(), pendingNotifications()])
+  const [blocks, activities, pending] = await Promise.all([
+    db.plannedBlocks.where('ownerId').equals(ownerId).filter(block => !block.deletedAt).toArray(),
+    db.activities.where('ownerId').equals(ownerId).filter(activity => !activity.deletedAt).toArray(),
+    pendingNotifications(),
+  ])
+  const activityById = new Map(activities.map(activity => [activity.id, activity]))
   const expected = plannerOccurrences(blocks, nowMs)
   const expectedById = new Map(expected.map(item => [plannedReminderNotificationId(item.block.id), item]))
   const owned = pending.filter(isOwnedPlannerReminder)
@@ -428,7 +439,8 @@ export async function reconcilePlannedBlockReminders(nowMs = Date.now(), options
     const current = owned.find(item => item.id === id)
     const currentExtra = current?.extra as { reminderAt?: unknown } | undefined
     const currentScheduleAt = current ? pendingAt(current) : null
-    if (current && currentScheduleAt !== null && Math.abs(currentScheduleAt - occurrence.reminderAt) < 1500 && currentExtra?.reminderAt === occurrence.reminderAt) continue
+    const expectedTitle = plannedBlockDisplayTitle(occurrence.block, occurrence.block.activityId && activityById.has(occurrence.block.activityId) ? [activityById.get(occurrence.block.activityId)!] : [])
+    if (current && currentScheduleAt !== null && Math.abs(currentScheduleAt - occurrence.reminderAt) < 1500 && currentExtra?.reminderAt === occurrence.reminderAt && current.title === expectedTitle) continue
     if (current) await cancelIds([id])
     await schedulePlannedBlockReminder(occurrence.block, { nowMs: nowMs - 1, requestPermission: options.requestPermission })
   }

@@ -8,6 +8,7 @@ import { normalizeActivityName } from '../features/activities/types'
 import { getCurrentOwnerId, getInstallationId } from './ownership'
 import { registerSyncHooks, syncMetadata } from '../features/sync/hooks'
 import type { OutboxEntry, SyncTombstone } from '../features/sync/schema'
+import { normalizeHexColor } from '../features/activities/color'
 
 export type StoredSession = ActiveSession & { finishedAt?: string }
 
@@ -100,6 +101,12 @@ class IzaDatabase extends Dexie {
         Object.assign(activity, { ownerId: activity.ownerId ?? ownerId, deviceId: activity.deviceId ?? deviceId, syncSchemaVersion: 1, createdAt: activity.createdAt ?? updatedAt, updatedAt, deletedAt: activity.deletedAt ?? null })
       })
     })
+    this.version(6).stores({}).upgrade(async transaction => {
+      await transaction.table<ActivityPreset>('activities').toCollection().modify(activity => {
+        const color = normalizeHexColor(activity.color)
+        if (color) activity.color = color
+      })
+    })
 
   }
 }
@@ -141,11 +148,20 @@ export async function migrateLegacyLocalStorage(): Promise<void> {
   }, updatedAt) as T
 
   await db.transaction('rw', [db.sessions, db.plannedBlocks, db.tasks, db.outbox, db.syncTombstones, db.meta], async () => {
-    if (active) await db.sessions.put(stamp({ ...active, status: active.status ?? 'running' }))
-    if (completed.length) await db.sessions.bulkPut(completed.map((session) => stamp({ ...session, status: 'completed', taskTitleSnapshot: session.taskTitleSnapshot ?? tasks.find(task => task.id === session.taskId)?.title }, session.finishedAt ?? migratedAt)))
-    if (planned.length) await db.plannedBlocks.bulkPut(planned.map((block) => stamp(block, block.updatedAt ?? block.finishedAt ?? migratedAt)))
+    const existingSessionIds = new Set(await db.sessions.toCollection().primaryKeys())
+    if (active && !existingSessionIds.has(active.id)) {
+      await db.sessions.add(stamp({ ...active, status: active.status ?? 'running' }))
+      existingSessionIds.add(active.id)
+    }
+    const missingCompleted = completed.filter(session => !existingSessionIds.has(session.id))
+    if (missingCompleted.length) await db.sessions.bulkAdd(missingCompleted.map((session) => stamp({ ...session, status: 'completed', taskTitleSnapshot: session.taskTitleSnapshot ?? tasks.find(task => task.id === session.taskId)?.title }, session.finishedAt ?? migratedAt)))
+    const existingPlanIds = new Set(await db.plannedBlocks.toCollection().primaryKeys())
+    const missingPlans = planned.filter(block => !existingPlanIds.has(block.id))
+    if (missingPlans.length) await db.plannedBlocks.bulkAdd(missingPlans.map((block) => stamp(block, block.updatedAt ?? block.finishedAt ?? migratedAt)))
     if (tasks.length) {
-      await db.tasks.bulkPut(tasks.map((task) => stamp(task, task.updatedAt ?? migratedAt)))
+      const existingTaskIds = new Set(await db.tasks.toCollection().primaryKeys())
+      const missingTasks = tasks.filter(task => !existingTaskIds.has(task.id))
+      if (missingTasks.length) await db.tasks.bulkAdd(missingTasks.map((task) => stamp(task, task.updatedAt ?? migratedAt)))
     }
     await db.meta.put({ key: MIGRATION_KEY, value: new Date().toISOString() })
   })
@@ -200,7 +216,7 @@ export async function replaceDatabaseState(input: {
     if (input.sessions.length) await db.sessions.bulkPut(input.sessions.map(stamp))
     if (input.plannedBlocks.length) await db.plannedBlocks.bulkPut(input.plannedBlocks.map(stamp))
     if (input.tasks.length) await db.tasks.bulkPut(input.tasks.map(stamp))
-    if (input.activities?.length) await db.activities.bulkPut(input.activities.map(stamp))
+    if (input.activities?.length) await db.activities.bulkPut(input.activities.map(activity => stamp({ ...activity, color: normalizeHexColor(activity.color) ?? activity.color })))
   })
 }
 

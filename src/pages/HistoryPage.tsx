@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { CalendarDays } from 'lucide-react'
 import type { CompletedSession } from '../features/timer/types'
 import { formatCompactDuration, isSameLocalDay, sessionSeconds } from '../lib/time'
+import { mixHexColors, readableColorForeground } from '../features/activities/color'
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
 
@@ -46,7 +47,7 @@ export function HistoryPage({ completed, onEdit, onOpenReports }: { completed: C
         {today.length === 0 ? (
           <div className="soft-empty"><strong>Your day is still open</strong><span>Finished sessions will settle here.</span></div>
         ) : today.map((session) => (
-          <button type="button" className="history-session" aria-current={new URLSearchParams(window.location.hash.split('?')[1]).get('session') === session.id ? 'true' : undefined} key={session.id} style={{ '--session-color': session.activity.color } as React.CSSProperties} onClick={() => onEdit(session)} aria-label={`Edit ${session.activity.name} time log`}>
+          <button type="button" className="history-session" aria-current={new URLSearchParams(window.location.hash.split('?')[1]).get('session') === session.id ? 'true' : undefined} key={session.id} style={{ '--session-color': session.activity.color, '--session-badge-foreground': readableColorForeground(mixHexColors(session.activity.color, '#FFFFFF', 0.32) ?? '#FFFFFF') } as React.CSSProperties} onClick={() => onEdit(session)} aria-label={`Edit ${session.activity.name} time log`}>
             <i aria-hidden="true" />
             <div><time>{timeFormatter.format(new Date(session.startedAt))}</time><strong>{session.activity.name}</strong>{session.note && <span>{session.note}</span>}</div>
             <b>{formatCompactDuration(sessionSeconds(session))}</b>

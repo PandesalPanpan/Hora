@@ -13,6 +13,18 @@ export const currentVersionCode = packageMetadata.androidVersionCode
 
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: '0.3.3',
+    date: '2026-09-23',
+    title: 'Your plans keep their own names',
+    summary: 'Activity changes no longer replace the custom titles on linked planned blocks, and Activity colors are easier to set.',
+    changes: [
+      'Preserved custom planned-block titles when a linked Activity is renamed or its color or category is updated.',
+      'Showed the linked Activity name only as a display fallback when a planned block has no custom title.',
+      'Added live color preview, direct HEX entry, curated color presets, and a full custom color picker to Manage Activities.',
+      'Normalized Activity colors across local storage and cloud sync, and improved text contrast on colored calendar entries.',
+    ],
+  },
+  {
     version: '0.3.2',
     date: '2026-09-22',
     title: 'A safer Android sign-in',
@@ -98,3 +110,15 @@ export const releaseNotes: ReleaseNote[] = [
     ],
   },
 ]
+
+function compareVersions(left: string, right: string): number {
+  const leftParts = left.split('.').map(Number)
+  const rightParts = right.split('.').map(Number)
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const difference = (leftParts[index] ?? 0) - (rightParts[index] ?? 0)
+    if (difference !== 0) return difference
+  }
+  return 0
+}
+
+export const availableReleaseNotes = releaseNotes.filter(release => compareVersions(release.version, currentVersion) <= 0)
