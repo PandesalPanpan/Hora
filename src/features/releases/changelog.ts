@@ -13,6 +13,16 @@ export const currentVersionCode = packageMetadata.androidVersionCode
 
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: '0.3.4',
+    date: '2026-09-24',
+    title: 'Cleaner time corrections',
+    summary: 'Second-level time controls now appear only when a session lasts less than a minute, while exact timestamps stay intact.',
+    changes: [
+      'Show start and finish second controls only for time logs shorter than 60 seconds.',
+      'Preserve exact stored seconds and milliseconds when a time log is opened and saved without changes.',
+    ],
+  },
+  {
     version: '0.3.3',
     date: '2026-09-23',
     title: 'Your plans keep their own names',
