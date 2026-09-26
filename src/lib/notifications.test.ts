@@ -118,6 +118,19 @@ describe('notification capability', () => {
     expect(pending.value).toHaveLength(0)
   })
 
+  it('clears a reached one-shot milestone without scheduling it again', async () => {
+    const { scheduleTimeflowMilestone } = await import('./notifications')
+    const running = session({ targetMinutes: 30 })
+    await scheduleTimeflowMilestone(running, 0, { nowMs: baseTime })
+    expect(pending.value).toHaveLength(1)
+
+    await scheduleTimeflowMilestone(running, 30 * 60, { nowMs: baseTime + 30 * 60_000 })
+    expect(pending.value).toHaveLength(0)
+    await scheduleTimeflowMilestone(running, 30 * 60, { nowMs: baseTime + 30 * 60_000 })
+    expect(pending.value).toHaveLength(0)
+    expect(scheduled.value).toHaveLength(1)
+  })
+
   it('repairs a missing timer alarm, avoids duplicates, and removes stale alarms', async () => {
     const { reconcileTimeflowNotifications, timeflowNotificationId } = await import('./notifications')
     const running = session()

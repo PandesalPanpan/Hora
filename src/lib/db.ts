@@ -10,7 +10,7 @@ import { registerSyncHooks, syncMetadata } from '../features/sync/hooks'
 import type { OutboxEntry, SyncTombstone } from '../features/sync/schema'
 import { normalizeHexColor } from '../features/activities/color'
 
-export type StoredSession = ActiveSession & { finishedAt?: string }
+export type StoredSession = ActiveSession & { finishedAt?: string; mood?: CompletedSession['mood'] }
 
 type MetaRecord = { key: string; value: string }
 

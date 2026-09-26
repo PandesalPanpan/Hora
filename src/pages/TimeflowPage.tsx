@@ -136,9 +136,9 @@ export function TimeflowPage({ onReview, active, completed, elapsed, start, paus
               <strong className="timer-digits" aria-label={`${fullClock(elapsed)} elapsed`}>{fullClock(elapsed)}</strong>
               <small>started {timeFormatter.format(new Date(active.startedAt))}</small>
               <span className="active-label"><i style={{ background: currentActivity.color }} />{currentActivity.name}</span>
-              <div className="active-goal-controls" aria-label="Time goal">
-                <span>{active.targetMinutes ? `Goal ${active.targetMinutes} min` : 'No time goal'}</span>
-                {[25, 30, 60].map((minutes) => <button key={minutes} type="button" className={active.targetMinutes === minutes ? 'selected' : ''} onClick={() => setTargetMinutes(minutes)} aria-label={`Change goal to ${minutes} minutes`}>{minutes}</button>)}
+              <div className="active-goal-controls" role="group" aria-label="Time goal">
+                <span aria-live="polite">{active.targetMinutes ? `Goal ${active.targetMinutes} min` : 'No time goal'}</span>
+                {[25, 30, 60].map((minutes) => <button key={minutes} type="button" className={active.targetMinutes === minutes ? 'selected' : ''} aria-pressed={active.targetMinutes === minutes} onClick={() => setTargetMinutes(minutes)} aria-label={`Change goal to ${minutes} minutes`}>{minutes}</button>)}
                 {active.targetMinutes && <button type="button" onClick={() => setTargetMinutes(null)}>Remove goal</button>}
               </div>
               <div className="timer-actions">
@@ -151,8 +151,9 @@ export function TimeflowPage({ onReview, active, completed, elapsed, start, paus
 <img src={clockMascot} alt="Hora clock character" />
               <div className="ready-controls">
                 <strong className="timer-digits">00:00:00</strong>
-                <small>minimum goal</small>
-                <div className="goal-row">{[25, 30, 60].map((minutes) => <button key={minutes} className={currentGoal === minutes ? 'selected' : ''} type="button" onClick={() => chooseGoal(minutes)} aria-label={`Set ${minutes} minute goal`}>{minutes}</button>)}</div>
+                <small>Time goal</small>
+                <div className="goal-row" role="group" aria-label="Choose a time goal">{[25, 30, 60].map((minutes) => <button key={minutes} className={currentGoal === minutes ? 'selected' : ''} type="button" aria-pressed={currentGoal === minutes} onClick={() => chooseGoal(minutes)} aria-label={`Set ${minutes} minute goal`}>{minutes}</button>)}</div>
+                <small className="goal-selection" aria-live="polite">Goal {currentGoal} min · reaching it won’t stop Flowtime.</small>
                 <button className="start-flowtime" type="button" onClick={startCurrent} aria-label={`Start ${selectedPreset.name} session`}><Play fill="currentColor" />Start flowtime</button>
               </div>
             </section>

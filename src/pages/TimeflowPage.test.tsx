@@ -24,6 +24,35 @@ it('keeps the running activity unambiguous while browsing filters', () => {
   expect(screen.getByRole('button',{name:'Reading'})).toBeDisabled()
   expect(screen.getByText('Finish this session to choose another activity.')).toBeInTheDocument()
 })
+it('shows the selected ready goal and passes it to the Flowtime start action', () => {
+  const start = vi.fn()
+  render(<TimeflowPage active={null} completed={[]} elapsed={0} {...actions} start={start} />)
+  const goal25 = screen.getByRole('button', { name: 'Set 25 minute goal' })
+  const goal30 = screen.getByRole('button', { name: 'Set 30 minute goal' })
+  expect(goal25).toHaveAttribute('aria-pressed', 'true')
+  expect(goal25).toHaveClass('selected')
+  expect(goal30).toHaveAttribute('aria-pressed', 'false')
+  expect(screen.getByText('Goal 25 min · reaching it won’t stop Flowtime.')).toBeInTheDocument()
+
+  fireEvent.click(goal30)
+  expect(goal25).toHaveAttribute('aria-pressed', 'false')
+  expect(goal30).toHaveAttribute('aria-pressed', 'true')
+  expect(goal30).toHaveClass('selected')
+  expect(screen.getByText('Goal 30 min · reaching it won’t stop Flowtime.')).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Start Study session' }))
+  expect(start).toHaveBeenCalledWith(expect.objectContaining({ name: 'Study' }), 30, { timerMode: 'flowtime' })
+})
+it('exposes the active goal selection and removal state accessibly', () => {
+  const active: ActiveSession = { id:'live',activity:{id:'study',name:'Study',color:'#b92f60'},startedAt:new Date().toISOString(),status:'running',targetMinutes:30 }
+  const setTargetMinutes = vi.fn()
+  render(<TimeflowPage active={active} completed={[]} elapsed={10} {...actions} setTargetMinutes={setTargetMinutes} />)
+  expect(screen.getByRole('button', { name: 'Change goal to 30 minutes' })).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.click(screen.getByRole('button', { name: 'Change goal to 60 minutes' }))
+  expect(setTargetMinutes).toHaveBeenCalledWith(60)
+  fireEvent.click(screen.getByRole('button', { name: 'Remove goal' }))
+  expect(setTargetMinutes).toHaveBeenCalledWith(null)
+})
 it('retains the same Pomodoro regions in ready, active, paused and milestone states', () => {
   const active: ActiveSession = {id:'live',activity:{id:'study',name:'Study',color:'#b92f60'},startedAt:new Date().toISOString(),status:'running',targetMinutes:25,timerMode:'pomodoro',pomodoro:{phase:'focus',round:1,focusMinutes:25,breakMinutes:5,focusActivity:{id:'study',name:'Study',color:'#b92f60'}}}
   const view = render(<TimeflowPage active={null} completed={[]} elapsed={0} {...actions}/>);fireEvent.click(screen.getByRole('button',{name:'Pomodoro'}))

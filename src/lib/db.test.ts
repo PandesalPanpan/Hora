@@ -60,4 +60,19 @@ describe('local database migration', () => {
     expect((await db.activities.get('study'))?.color).toBe('#AA33FF')
     expect((await db.plannedBlocks.get('plan'))?.title).toBe('Biology Class')
   })
+
+  it('restores a completed session feeling with the session record', async () => {
+    const session = {
+      id: 'session-with-feeling',
+      activity: { id: 'study', name: 'Study', color: '#b92f60' },
+      status: 'completed' as const,
+      startedAt: '2026-09-12T06:00:00.000Z',
+      finishedAt: '2026-09-12T06:30:00.000Z',
+      mood: 'focused' as const,
+    }
+
+    await replaceDatabaseState({ sessions: [session], plannedBlocks: [], tasks: [] })
+
+    expect(await db.sessions.get(session.id)).toMatchObject({ status: 'completed', mood: 'focused' })
+  })
 })

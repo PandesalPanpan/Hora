@@ -12,5 +12,9 @@ export function reportWeek(completed: CompletedSession[], planned: PlannedBlock[
   const blocks = planned.flatMap(expandRecurringBlock).filter((item) => keys.has(localDateKey(new Date(item.startedAt))))
   const actualByDay = days.map((day) => sessions.filter((item) => localDateKey(new Date(item.startedAt)) === localDateKey(day)).reduce((sum, item) => sum + sessionSeconds(item), 0))
   const plannedByDay = days.map((day) => blocks.filter((item) => localDateKey(new Date(item.startedAt)) === localDateKey(day)).reduce((sum, item) => sum + Math.max(0, (new Date(item.finishedAt).getTime() - new Date(item.startedAt).getTime()) / 1000), 0))
-  return { days, sessions, blocks, actualByDay, plannedByDay, actualTotal: actualByDay.reduce((a, b) => a + b, 0), plannedTotal: plannedByDay.reduce((a, b) => a + b, 0) }
+  const moodCounts = sessions.reduce((counts, session) => {
+    if (session.mood) counts[session.mood] += 1
+    return counts
+  }, { calm: 0, focused: 0, tired: 0 })
+  return { days, sessions, blocks, actualByDay, plannedByDay, moodCounts, actualTotal: actualByDay.reduce((a, b) => a + b, 0), plannedTotal: plannedByDay.reduce((a, b) => a + b, 0) }
 }

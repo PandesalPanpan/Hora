@@ -47,6 +47,16 @@ describe('TimerNotification bridge contract', () => {
     expect(mocks.plugin.syncActiveTimer).toHaveBeenCalledWith({ sessionJson: JSON.stringify(session), baseRevision: 0 })
   })
 
+  it('forwards changed and removed goals in the active notification snapshot', async () => {
+    const { syncNativeTimer } = await import('./native')
+    await syncNativeTimer({ ...session, targetMinutes: 30 })
+    await syncNativeTimer({ ...session, targetMinutes: null })
+
+    const calls = mocks.plugin.syncActiveTimer.mock.calls as Array<[{ sessionJson: string; baseRevision: number }]>
+    expect(JSON.parse(calls[0][0].sessionJson)).toMatchObject({ targetMinutes: 30 })
+    expect(JSON.parse(calls[1][0].sessionJson)).toMatchObject({ targetMinutes: null })
+  })
+
   it('exposes pending native actions for startup reconciliation', async () => {
     const action = { actionId: 'a1', type: 'finish', sessionId: session.id, occurredAt: '2026-09-21T08:02:00.000Z', revision: 2, active: null, completed: { ...session, status: 'completed', finishedAt: '2026-09-21T08:02:00.000Z' } }
     mocks.plugin.getTimerState.mockResolvedValue({ snapshot: nativeSnapshot(null, 2, [action]) })

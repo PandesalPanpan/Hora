@@ -6,6 +6,11 @@ import { formatCompactDuration, isSameLocalDay, sessionSeconds } from '../lib/ti
 import { mixHexColors, readableColorForeground } from '../features/activities/color'
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
+const sessionFeelings = {
+  calm: { symbol: '☁', label: 'Calm' },
+  focused: { symbol: '✦', label: 'Focused' },
+  tired: { symbol: '☕', label: 'Tired' },
+} as const
 
 export function HistoryPage({ completed, onEdit, onOpenReports }: { completed: CompletedSession[]; onEdit: (session: CompletedSession) => void; onOpenReports: () => void }) {
   const [selectedDate, setSelectedDate] = useState(() => { const value = new URLSearchParams(window.location.hash.split('?')[1]).get('date'); return value ? new Date(`${value}T12:00:00`) : new Date() })
@@ -47,9 +52,9 @@ export function HistoryPage({ completed, onEdit, onOpenReports }: { completed: C
         {today.length === 0 ? (
           <div className="soft-empty"><strong>Your day is still open</strong><span>Finished sessions will settle here.</span></div>
         ) : today.map((session) => (
-          <button type="button" className="history-session" aria-current={new URLSearchParams(window.location.hash.split('?')[1]).get('session') === session.id ? 'true' : undefined} key={session.id} style={{ '--session-color': session.activity.color, '--session-badge-foreground': readableColorForeground(mixHexColors(session.activity.color, '#FFFFFF', 0.32) ?? '#FFFFFF') } as React.CSSProperties} onClick={() => onEdit(session)} aria-label={`Edit ${session.activity.name} time log`}>
+          <button type="button" className="history-session" aria-current={new URLSearchParams(window.location.hash.split('?')[1]).get('session') === session.id ? 'true' : undefined} key={session.id} style={{ '--session-color': session.activity.color, '--session-badge-foreground': readableColorForeground(mixHexColors(session.activity.color, '#FFFFFF', 0.32) ?? '#FFFFFF') } as React.CSSProperties} onClick={() => onEdit(session)} aria-label={`Edit ${session.activity.name} time log${session.mood ? `, feeling ${sessionFeelings[session.mood].label.toLowerCase()}` : ''}`}>
             <i aria-hidden="true" />
-            <div><time>{timeFormatter.format(new Date(session.startedAt))}</time><strong>{session.activity.name}</strong>{session.note && <span>{session.note}</span>}</div>
+            <div><time>{timeFormatter.format(new Date(session.startedAt))}</time><strong>{session.activity.name}</strong>{session.mood && <span className="history-session-feeling">{sessionFeelings[session.mood].symbol} Feeling: {sessionFeelings[session.mood].label}</span>}{session.note && <span>{session.note}</span>}</div>
             <b>{formatCompactDuration(sessionSeconds(session))}</b>
           </button>
         ))}

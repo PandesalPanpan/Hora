@@ -9,6 +9,7 @@ import {
 import type { Task } from '../tasks/types'
 import type { ActivityPreset } from '../activities/types'
 import type { PlannedBlock } from '../planner/types'
+import type { CompletedSession } from '../timer/types'
 
 const task: Task = {
   id: 'task-1',
@@ -92,5 +93,20 @@ describe('cloud sync schema boundary', () => {
     }
     const planEnvelope = serializeForCloud('plannedBlocks',plan,'user:alice','device-a')
     expect(deserializeFromCloud<PlannedBlock>(planEnvelope)?.title).toBe('Biology Class')
+  })
+
+  it('keeps a completed session feeling in the cloud payload and restored record', () => {
+    const session: CompletedSession = {
+      id: 'session-with-feeling',
+      activity: { id: 'study', name: 'Study', color: '#b92f60' },
+      status: 'completed',
+      startedAt: '2026-09-22T08:00:00.000Z',
+      finishedAt: '2026-09-22T08:30:00.000Z',
+      mood: 'focused',
+    }
+    const envelope = serializeForCloud('sessions', session, 'user:alice', 'device-a')
+
+    expect(envelope.payload).toMatchObject({ mood: 'focused' })
+    expect(deserializeFromCloud<CompletedSession>(envelope)?.mood).toBe('focused')
   })
 })

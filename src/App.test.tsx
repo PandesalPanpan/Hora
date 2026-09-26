@@ -4,6 +4,10 @@ import App from './App'
 import { toLocalInput } from './lib/completionTime'
 import { currentVersion } from './features/releases/changelog'
 
+async function flushAppWork() {
+  await act(async () => { await vi.advanceTimersByTimeAsync(100) })
+}
+
 describe('Iza timer and navigation', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -55,14 +59,86 @@ describe('Iza timer and navigation', () => {
     expect(screen.getByLabelText('00:01:30 elapsed')).toBeInTheDocument()
   })
 
-  it('starts with the Figma default goal and allows changing it before starting', () => {
-    render(<App />)
-    expect(screen.getByRole('button', { name: 'Set 25 minute goal' })).toHaveClass('selected')
+  it('uses, persists, restores, changes, and removes the selected Flowtime goal', async () => {
+    const first = render(<App />)
+    expect(screen.getByRole('button', { name: 'Set 25 minute goal' })).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(screen.getByRole('button', { name: 'Set 30 minute goal' }))
+    expect(screen.getByRole('button', { name: 'Set 30 minute goal' })).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(screen.getByRole('button', { name: 'Start Study session' }))
 
-    expect(JSON.parse(localStorage.getItem('iza.active-session.v1') ?? '{}')).toMatchObject({ targetMinutes: 30 })
-    expect(screen.getByText(/Live flowtime/i)).toBeInTheDocument()
+    expect(screen.getByText('Goal 30 min')).toBeInTheDocument()
+    await flushAppWork()
+    expect(JSON.parse(localStorage.getItem('iza.active-session.v1') ?? '{}')).toMatchObject({ status: 'running', targetMinutes: 30 })
+    vi.setSystemTime(new Date('2026-09-12T06:30:00.000Z'))
+    act(() => vi.advanceTimersByTime(1_000))
+    expect(screen.getByText(/Goal reached · keep going/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Finish session' })).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reports' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Today' }))
+    first.unmount()
+    localStorage.clear()
+
+    render(<App />)
+    await flushAppWork()
+    expect(screen.getByText('Goal 30 min')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Change goal to 60 minutes' }))
+    expect(screen.getByText('Goal 60 min')).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('iza.active-session.v1') ?? '{}')).toMatchObject({ status: 'running', targetMinutes: 60 })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove goal' }))
+    expect(screen.getByText('No time goal')).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('iza.active-session.v1') ?? '{}')).toMatchObject({ status: 'running', targetMinutes: null })
+  })
+
+  it('saves a feeling on the completed record, shows it in History, and restores edits', async () => {
+    const view = render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Start Study session' }))
+    act(() => vi.advanceTimersByTime(1_000))
+    fireEvent.click(screen.getByRole('button', { name: 'Finish session' }))
+
+    const calm = screen.getByRole('button', { name: /calm/i })
+    const focused = screen.getByRole('button', { name: /focused/i })
+    const tired = screen.getByRole('button', { name: /tired/i })
+    expect(calm).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(calm)
+    expect(calm).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(focused)
+    expect(calm).toHaveAttribute('aria-pressed', 'false')
+    expect(focused).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(tired)
+    expect(focused).toHaveAttribute('aria-pressed', 'false')
+    expect(tired).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(focused)
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await flushAppWork()
+    const focusedRow = screen.getByRole('button', { name: 'Edit Study time log, feeling focused' })
+    expect(focusedRow).toHaveTextContent('Feeling: Focused')
+
+    fireEvent.click(focusedRow)
+    const review = within(screen.getByRole('form', { name: 'Complete time log' }))
+    expect(review.getByRole('button', { name: /focused/i })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(review.getByRole('button', { name: /calm/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await flushAppWork()
+    const calmRow = screen.getByRole('button', { name: 'Edit Study time log, feeling calm' })
+    expect(calmRow).toHaveTextContent('Feeling: Calm')
+
+    fireEvent.click(calmRow)
+    const calmReview = within(screen.getByRole('form', { name: 'Complete time log' }))
+    expect(calmReview.getByRole('button', { name: /calm/i })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(calmReview.getByRole('button', { name: 'Clear feeling' }))
+    fireEvent.click(calmReview.getByRole('button', { name: 'Save changes' }))
+    await flushAppWork()
+    const clearedRow = screen.getByRole('button', { name: 'Edit Study time log' })
+    expect(clearedRow).not.toHaveTextContent('Feeling:')
+
+    view.unmount()
+    localStorage.clear()
+    render(<App />)
+    await flushAppWork()
+    expect(screen.getByRole('button', { name: 'Edit Study time log' })).not.toHaveTextContent('Feeling:')
   })
 
   it('marks a newly selected past goal as reached without stopping', () => {

@@ -12,3 +12,18 @@ it('selects today, shows honest empty bars, navigates weeks and links the select
   fireEvent.click(screen.getByRole('button',{name:'History'}));expect(open).toHaveBeenCalledTimes(2)
   expect(screen.getByText('No tracked time')).toBeInTheDocument()
 })
+it('shows a weekly count of feelings recorded on completed sessions', () => {
+  const startedAt = new Date()
+  startedAt.setHours(9, 0, 0, 0)
+  const completed = ['focused-a', 'focused-b', 'calm'].map((id, index) => ({
+    id, activity: { id: 'study', name: 'Study', color: '#b92f60' }, status: 'completed' as const,
+    startedAt: new Date(startedAt.getTime() + index * 60 * 60_000).toISOString(),
+    finishedAt: new Date(startedAt.getTime() + (index + 1) * 60 * 60_000).toISOString(),
+    mood: id.startsWith('focused') ? 'focused' as const : 'calm' as const,
+  }))
+  render(<ReportsPage completed={completed} onOpenHistory={vi.fn()} />)
+  const summary = screen.getByRole('region', { name: 'Feelings noted this week' })
+  expect(summary).toHaveTextContent('Focused 2')
+  expect(summary).toHaveTextContent('Calm 1')
+  expect(summary).not.toHaveTextContent('Tired')
+})
